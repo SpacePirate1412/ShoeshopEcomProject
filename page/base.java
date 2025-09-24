@@ -44,10 +44,6 @@ public class base extends JFrame {
         leftMenu.add(allProductsBtn);
         leftMenu.add(searchField);
         leftMenu.add(searchBtn);
-            allProductsBtn.addActionListener(e -> {
-            dispose(); // ปิดหน้าปัจจุบัน
-            new AllProducts(); // เปิดหน้าสินค้าทั้งหมด
-        });
 
 
         // ฝั่งขวา (หัวใจ, ตะกร้า, login)
