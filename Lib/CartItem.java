@@ -32,9 +32,10 @@ public class CartItem {
      * @param amount the amount that you want to increase(must be positive)
      */
     public void increaseQuantity(int amount) {
-        if (delta <= 0) throw new IllegalArgumentException("Increase must be positive.");
+        if (amount <= 0) throw new IllegalArgumentException("Increase must be positive.");
         this.quantity += amount;
         checkRep();
     }
 }
+
 
