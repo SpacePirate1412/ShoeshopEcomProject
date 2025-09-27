@@ -6,67 +6,89 @@ import java.awt.*;
 public class ShoeStoreLogin extends base {
 
     public ShoeStoreLogin() {
-        super("Login");
-         setExtendedState(JFrame.MAXIMIZED_BOTH);
-        // ===== พื้นหลังด้านซ้าย =====
-        BackgroundPanel leftPanel = new BackgroundPanel("Picture/bg_login.jpg");
+        super("Login",false);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+
+        // ===== ฝั่งซ้าย =====
+        JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(600, 600));
+        leftPanel.setOpaque(true);
+        leftPanel.setBackground(new Color(240, 240, 240)); // สีเทาอ่อน
 
         // รูปรองเท้า
         ImageIcon shoeImg = new ImageIcon("Picture/login5.png");
         JLabel shoeLabel = new JLabel(shoeImg);
-        shoeLabel.setBounds(250, 50, 900, 900);
-        leftPanel.add(shoeLabel);
+        shoeLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        shoeLabel.setVerticalAlignment(SwingConstants.CENTER);
+        leftPanel.add(shoeLabel, BorderLayout.CENTER);
 
         add(leftPanel, BorderLayout.CENTER);
 
-        // ===== ฟอร์ม Login =====
+        // ===== ฝั่งขวา =====
         JPanel rightPanel = new JPanel(null);
         rightPanel.setBackground(Color.WHITE);
-        rightPanel.setPreferredSize(new Dimension(400, 600));
+        rightPanel.setPreferredSize(new Dimension(500, 600));
 
-        JLabel title = new JLabel("เข้าสู่ระบบ / Sign In");
+        JLabel title = new JLabel("เข้าสู่ระบบ / Login");
         title.setFont(new Font("Tahoma", Font.BOLD, 18));
-        title.setBounds(80, 40, 300, 30);
+        title.setBounds(150, 30, 300, 30);
         rightPanel.add(title);
 
-        JLabel userLabel = new JLabel("ชื่อผู้ใช้งาน");
+        // ===== Username =====
+        JLabel userLabel = new JLabel("ชื่อผู้ใช้งาน / Username");
         userLabel.setBounds(50, 100, 200, 20);
         rightPanel.add(userLabel);
-
         JTextField usernameField = new JTextField();
-        usernameField.setBounds(50, 125, 250, 35);
+        usernameField.setBounds(50, 120, 330, 35);
         rightPanel.add(usernameField);
 
-        JLabel passLabel = new JLabel("รหัสผ่าน");
-        passLabel.setBounds(50, 180, 200, 20);
+        // ===== Password =====
+        JLabel passLabel = new JLabel("รหัสผ่าน / Password");
+        passLabel.setBounds(50, 170, 200, 20);
         rightPanel.add(passLabel);
-
         JPasswordField passwordField = new JPasswordField();
-        passwordField.setBounds(50, 205, 250, 35);
+        passwordField.setBounds(50, 190, 330, 35);
         rightPanel.add(passwordField);
 
-        JButton loginButton2 = new JButton("เข้าสู่ระบบ");
-        loginButton2.setBounds(50, 260, 250, 40);
-        loginButton2.setBackground(Color.BLACK);
-        loginButton2.setForeground(Color.WHITE);
-        rightPanel.add(loginButton2);
+        // ===== Login Button =====
+        JButton loginBtn = new JButton("เข้าสู่ระบบ");
+        loginBtn.setBounds(50, 250, 330, 40);
+        loginBtn.setBackground(Color.BLACK);
+        loginBtn.setForeground(Color.WHITE);
+        rightPanel.add(loginBtn);
 
-        JButton registerLabel = new JButton("ยังไม่ได้สร้างบัญชีใช่ไหม? สมัครสมาชิก");
-        registerLabel.setBounds(20, 310, 300, 30);
-        registerLabel.setBorderPainted(false);
-        registerLabel.setContentAreaFilled(false);
-        registerLabel.setForeground(Color.BLUE);
-        registerLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        registerLabel.addActionListener(e -> {
+        // ===== Signup Link =====
+        JButton signupLink = new JButton("ยังไม่มีบัญชี? สมัครสมาชิก");
+        signupLink.setBounds(50, 310, 300, 30);
+        signupLink.setBorderPainted(false);
+        signupLink.setContentAreaFilled(false);
+        signupLink.setForeground(Color.BLUE);
+        signupLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        signupLink.addActionListener(e -> {
             dispose();
             new signup().setVisible(true);
         });
-        rightPanel.add(registerLabel);
+        rightPanel.add(signupLink);
 
-        add(rightPanel, BorderLayout.EAST);
+        // ===== JScrollPane (เลื่อนได้ แต่ไม่โชว์ scrollbar) =====
+        JScrollPane scrollPane = new JScrollPane(rightPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(40);
 
-        setSize(900, 600);
+        add(scrollPane, BorderLayout.EAST);
+
+        setSize(1100, 700);
         setLocationRelativeTo(null);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new ShoeStoreLogin().setVisible(true);
+        });
     }
 }
