@@ -26,12 +26,14 @@ public class User {
             throw new IllegalArgumentException("เบอร์โทรศัพท์นี้ถูกใช้แล้ว!");
         }
 
+        File file = new File(FILE_PATH);
+        boolean newFile = !file.exists() || file.length() == 0;
+
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(
                 new FileOutputStream(FILE_PATH, true), StandardCharsets.UTF_8))) {
 
             // เขียน header ถ้าไฟล์ยังไม่มี
-            File file = new File(FILE_PATH);
-            if (file.length() == 0) {
+            if (newFile) {
                 bw.write("username,password,email,fullname,house,subdistrict,district,province,zipcode,phone,role");
                 bw.newLine();
             }
@@ -44,13 +46,15 @@ public class User {
         return true;
     }
 
-    // เข้าสู่ระบบ (Login)
+    // เข้าสู่ระบบ (Login) → คืนค่า role (user/admin) หรือ null ถ้า fail
     public static String login(String username, String password) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                new FileInputStream(FILE_PATH), StandardCharsets.UTF_8))) {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return null;
 
-            String line;
-            br.readLine(); // ข้าม header
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(
+                new FileInputStream(file), StandardCharsets.UTF_8))) {
+
+            String line = br.readLine(); // ข้าม header
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 11) { // ตอนนี้มี 11 field
@@ -76,11 +80,11 @@ public class User {
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
             br.readLine(); // ข้าม header
+            String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length >= 1 && parts[0].equals(username)) {
+                if (parts.length >= 1 && parts[0].equalsIgnoreCase(username)) {
                     return true;
                 }
             }
@@ -95,8 +99,8 @@ public class User {
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
             br.readLine(); // ข้าม header
+            String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 3 && parts[2].equalsIgnoreCase(email)) {
@@ -114,8 +118,8 @@ public class User {
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(
                 new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
             br.readLine(); // ข้าม header
+            String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length >= 10 && parts[9].equals(phone)) {

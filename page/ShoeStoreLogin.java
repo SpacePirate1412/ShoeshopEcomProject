@@ -14,7 +14,7 @@ public class ShoeStoreLogin extends base {
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(600, 600));
         leftPanel.setOpaque(true);
-        leftPanel.setBackground(new Color(240, 240, 240)); // สีเทาอ่อน
+        leftPanel.setBackground(new Color(240, 240, 240));
 
         // รูปรองเท้า
         ImageIcon shoeImg = new ImageIcon("Picture/login5.png");
@@ -58,7 +58,7 @@ public class ShoeStoreLogin extends base {
         loginBtn.setForeground(Color.WHITE);
         rightPanel.add(loginBtn);
 
-        // ✅ เชื่อมกับ User.login() ที่ return role
+        // ✅ เชื่อมกับ User.login() + Remember Me
         loginBtn.addActionListener(e -> {
             String username = usernameField.getText().trim();
             String password = new String(passwordField.getPassword());
@@ -71,20 +71,21 @@ public class ShoeStoreLogin extends base {
                 return;
             }
 
-            String role = User.login(username, password); // ได้ role กลับมา
-
+            // 🔑 login จะคืน role (user/admin) หรือ null
+            String role = User.login(username, password);
             if (role != null) {
+                // บันทึก session
+                Session.saveSession(username, role);
+
                 JOptionPane.showMessageDialog(this,
-                        "เข้าสู่ระบบสำเร็จ!",
+                        "เข้าสู่ระบบสำเร็จ! ",
                         "สำเร็จ",
                         JOptionPane.INFORMATION_MESSAGE);
 
                 dispose();
-                if (role.equalsIgnoreCase("admin")) {
-                    // 🔑 เปิดหน้า Admin
+                if ("admin".equalsIgnoreCase(role)) {
                     new AdminDashboard().setVisible(true);
                 } else {
-                    // 👤 เปิดหน้า User ปกติ
                     new AllProducts().setVisible(true);
                 }
             } else {
