@@ -4,11 +4,87 @@ import javax.swing.*;
 import java.awt.*;
 import java.text.Collator;
 import java.util.List;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Map;
 
 public class signup extends base {
 
     private Map<String, Map<String, Map<String, String>>> thaiAddresses;
+
+        // ===== Validation Methods =====
+        private boolean isValidEmail(String email) {
+        if (email == null || email.trim().isEmpty()) return false;
+
+        // Normalize → ตัวเล็กทั้งหมด
+        email = email.toLowerCase();
+
+        // Regex พื้นฐาน
+        String regex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        if (!email.matches(regex) || email.length() > 100) return false;
+
+        // จำกัดโดเมนที่อนุญาต
+         String[] allowedDomains = {"@gmail.com", "@hotmail.com", "@ku.th"};
+         for (String domain : allowedDomains) {
+            if (email.endsWith(domain)) {
+                 return true;
+            }
+        }
+        return false;
+    }
+
+
+    private boolean isValidUsername(String username) {
+        if (username == null || username.trim().isEmpty()) return false;
+        String regex = "^[a-zA-Z0-9._-]{4,20}$"; // 4–20 ตัว
+        return username.matches(regex);
+    }
+
+    private boolean isValidPassword(String password, String email, String username) {
+        if (password == null || password.length() < 8) return false;
+        boolean hasUpper = password.matches(".*[A-Z].*");
+        boolean hasLower = password.matches(".*[a-z].*");
+        boolean hasDigit = password.matches(".*[0-9].*");
+
+        // ❌ ห้ามซ้ำกับ Email หรือ Username
+        if (password.equalsIgnoreCase(email) || password.equalsIgnoreCase(username)) {
+            return false;
+        }
+
+        // ❌ ห้ามเป็นอักขระเดียวกันทั้งหมด เช่น 11111111 หรือ aaaaaaaa
+        if (password.chars().distinct().count() == 1) {
+            return false;
+        }
+
+        return hasUpper && hasLower && hasDigit;
+    }
+
+    private boolean isValidFullName(String name) {
+        if (name == null || name.trim().isEmpty()) return false;
+        return name.matches("^[ก-๙a-zA-Z\\s]{1,100}$");
+    }
+
+    private boolean isValidHouse(String house) {
+        if (house == null || house.trim().isEmpty()) return false;
+        return house.length() <= 200;
+    }
+
+    private boolean isValidPhone(String phone) {
+        if (phone == null) return false;
+
+        // ✅ ต้องขึ้นต้นด้วย 0 และมี 10 หลัก
+        if (!phone.matches("^0[0-9]{9}$")) {
+            return false;
+        }
+
+        // ❌ ห้ามเป็นตัวเลขซ้ำทุกตัว เช่น "0000000000"
+        if (phone.chars().distinct().count() == 1) {
+            return false;
+        }
+
+        return true;
+    }
 
     public signup() {
         super("Sign Up", false);
@@ -21,21 +97,19 @@ public class signup extends base {
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(600, 600));
         leftPanel.setOpaque(true);
-        leftPanel.setBackground(new Color(240, 240, 240)); // <<< สีพื้นหลังเทาอ่อน
+        leftPanel.setBackground(new Color(240, 240, 240));
 
-        // รูปรองเท้า
         ImageIcon shoeImg = new ImageIcon("Picture/login5.png");
         JLabel shoeLabel = new JLabel(shoeImg);
         shoeLabel.setHorizontalAlignment(SwingConstants.CENTER);
         shoeLabel.setVerticalAlignment(SwingConstants.CENTER);
         leftPanel.add(shoeLabel, BorderLayout.CENTER);
-
         add(leftPanel, BorderLayout.CENTER);
 
         // ===== Panel ด้านขวา =====
         JPanel rightPanel = new JPanel(null);
         rightPanel.setBackground(Color.WHITE);
-        rightPanel.setPreferredSize(new Dimension(500, 1000)); // สูงกว่าหน้าจอ
+        rightPanel.setPreferredSize(new Dimension(500, 1000));
 
         JLabel title = new JLabel("สมัครสมาชิก / Sign Up");
         title.setFont(new java.awt.Font("Tahoma", java.awt.Font.BOLD, 18));
@@ -86,72 +160,65 @@ public class signup extends base {
         fullnameField.setBounds(50, 410, 330, 35);
         rightPanel.add(fullnameField);
 
-        JLabel houseLabel = new JLabel("บ้านเลขที่");
+        JLabel houseLabel = new JLabel("หมู่ / บ้านเลขที่");
         houseLabel.setBounds(50, 450, 200, 20);
         rightPanel.add(houseLabel);
         JTextField houseField = new JTextField();
         houseField.setBounds(50, 470, 330, 35);
         rightPanel.add(houseField);
 
-        // ===== Province (จังหวัด) =====
+        // Province
         JLabel provinceLabel = new JLabel("จังหวัด");
         provinceLabel.setBounds(50, 510, 200, 20);
         rightPanel.add(provinceLabel);
-
         JComboBox<String> provinceBox = new JComboBox<>();
         provinceBox.setBounds(50, 530, 330, 35);
+        provinceBox.setFont(new java.awt.Font("tahoma", java.awt.Font.PLAIN, 14));
         rightPanel.add(provinceBox);
 
-        // ===== District (เขต/อำเภอ) =====
+        // District
         JLabel districtLabel = new JLabel("เขต/อำเภอ");
         districtLabel.setBounds(50, 570, 200, 20);
         rightPanel.add(districtLabel);
-
         JComboBox<String> districtBox = new JComboBox<>();
         districtBox.setBounds(50, 590, 330, 35);
+        districtBox.setFont(new java.awt.Font("tahoma", java.awt.Font.PLAIN, 14));
         rightPanel.add(districtBox);
 
-        // ===== Subdistrict (แขวง/ตำบล) =====
+        // Subdistrict
         JLabel subdistrictLabel = new JLabel("แขวง/ตำบล");
         subdistrictLabel.setBounds(50, 630, 200, 20);
         rightPanel.add(subdistrictLabel);
-
         JComboBox<String> subdistrictBox = new JComboBox<>();
         subdistrictBox.setBounds(50, 650, 330, 35);
+        subdistrictBox.setFont(new java.awt.Font("tahoma", java.awt.Font.PLAIN, 14));
         rightPanel.add(subdistrictBox);
 
-        // ===== Zipcode (รหัสไปรษณีย์) =====
+        // Zipcode
         JLabel zipcodeLabel = new JLabel("รหัสไปรษณีย์");
         zipcodeLabel.setBounds(50, 690, 200, 20);
         rightPanel.add(zipcodeLabel);
-
         JTextField zipcodeField = new JTextField();
         zipcodeField.setBounds(50, 710, 330, 35);
         zipcodeField.setEditable(false);
         rightPanel.add(zipcodeField);
 
-        provinceBox.setFont(new java.awt.Font("tahoma", java.awt.Font.PLAIN, 14));
-        districtBox.setFont(new java.awt.Font("tahoma", java.awt.Font.PLAIN, 14));
-        subdistrictBox.setFont(new java.awt.Font("tahoma", java.awt.Font.PLAIN, 14));
-
-
-        // ===== Phone (โทรศัพท์) =====
+        // Phone
         JLabel phoneLabel = new JLabel("หมายเลขโทรศัพท์");
         phoneLabel.setBounds(50, 750, 200, 20);
         rightPanel.add(phoneLabel);
-
         JTextField phoneField = new JTextField();
         phoneField.setBounds(50, 770, 330, 35);
         rightPanel.add(phoneField);
 
-        // ===== Signup Button =====
+        // Signup Button
         JButton signupBtn = new JButton("สมัครสมาชิก");
         signupBtn.setBounds(50, 820, 330, 40);
         signupBtn.setBackground(Color.BLACK);
         signupBtn.setForeground(Color.WHITE);
         rightPanel.add(signupBtn);
 
-        // ===== Back to Login =====
+        // Back to Login
         JButton loginLink = new JButton("มีบัญชีอยู่แล้วใช่ไหม? เข้าสู่ระบบ");
         loginLink.setBounds(50, 870, 300, 30);
         loginLink.setBorderPainted(false);
@@ -164,7 +231,7 @@ public class signup extends base {
         });
         rightPanel.add(loginLink);
 
-        // ===== JScrollPane ฝั่งขวา =====
+        // ScrollPane
         JScrollPane scrollPane = new JScrollPane(rightPanel);
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -172,7 +239,6 @@ public class signup extends base {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(0, 0));
         scrollPane.getVerticalScrollBar().setUnitIncrement(40);
-
         add(scrollPane, BorderLayout.EAST);
 
         // ===== เติมจังหวัด (เรียง ก-ฮ) =====
@@ -223,6 +289,73 @@ public class signup extends base {
             if (selectedProvince != null && selectedDistrict != null && selectedSubdistrict != null) {
                 String zipcode = thaiAddresses.get(selectedProvince).get(selectedDistrict).get(selectedSubdistrict);
                 zipcodeField.setText(zipcode);
+            }
+        });
+
+        // ===== ปุ่มสมัครสมาชิก (ตรวจสอบ + บันทึก CSV) =====
+        signupBtn.addActionListener(e -> {
+            String email = emailField.getText().trim();
+            String username = usernameField.getText().trim();
+            String password = new String(passwordField.getPassword());
+            String repassword = new String(repasswordField.getPassword());
+            String fullname = fullnameField.getText().trim();
+            String house = houseField.getText().trim();
+            String phone = phoneField.getText().trim();
+
+            String province = (String) provinceBox.getSelectedItem();
+            String district = (String) districtBox.getSelectedItem();
+            String subdistrict = (String) subdistrictBox.getSelectedItem();
+            String zipcode = zipcodeField.getText();
+
+            // ✅ role ของผู้สมัครเอง
+            String role = "user";
+
+            // Validation
+            if (!isValidEmail(email)) {
+                JOptionPane.showMessageDialog(this, "กรุณากรอกอีเมลให้ถูกต้อง", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isValidUsername(username)) {
+                JOptionPane.showMessageDialog(this, "ชื่อผู้ใช้ต้องมี 4-20 ตัว และใช้ได้เฉพาะ a-z, A-Z, 0-9, ., _, -", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isValidPassword(password, email, username)) {
+                JOptionPane.showMessageDialog(this, "รหัสผ่านต้อง ≥ 8 ตัว มีทั้งตัวใหญ่ ตัวเล็ก ตัวเลข และห้ามซ้ำกับอีเมล/ชื่อผู้ใช้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!password.equals(repassword)) {
+                JOptionPane.showMessageDialog(this, "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isValidFullName(fullname)) {
+                JOptionPane.showMessageDialog(this, "กรุณากรอกชื่อ-นามสกุล (ภาษาไทย/อังกฤษ)", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isValidHouse(house)) {
+                JOptionPane.showMessageDialog(this, "กรุณากรอกบ้านเลขที่ (ไม่เกิน 200 ตัวอักษร)", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (!isValidPhone(phone)) {
+                JOptionPane.showMessageDialog(this, "หมายเลขโทรศัพท์ต้องขึ้นต้นด้วย 0 และมี 10 หลัก", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try {
+                // ✅ ส่ง role = user ไปบันทึก
+                boolean success = User.register(username, password, email, fullname, house,
+                        subdistrict, district, province, zipcode, phone, role);
+
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "สมัครสมาชิกสำเร็จ!", "สำเร็จ", JOptionPane.INFORMATION_MESSAGE);
+
+                    // กลับไปหน้า Login
+                    dispose();
+                    new ShoeStoreLogin().setVisible(true);
+                } else {
+                    JOptionPane.showMessageDialog(this, "เกิดข้อผิดพลาดในการบันทึกข้อมูล", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             }
         });
 

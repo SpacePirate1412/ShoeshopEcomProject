@@ -6,7 +6,7 @@ import java.awt.*;
 public class ShoeStoreLogin extends base {
 
     public ShoeStoreLogin() {
-        super("Login",false);
+        super("Login", false);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
@@ -58,6 +58,43 @@ public class ShoeStoreLogin extends base {
         loginBtn.setForeground(Color.WHITE);
         rightPanel.add(loginBtn);
 
+        // ✅ เชื่อมกับ User.login() ที่ return role
+        loginBtn.addActionListener(e -> {
+            String username = usernameField.getText().trim();
+            String password = new String(passwordField.getPassword());
+
+            if (username.isEmpty() || password.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                        "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน",
+                        "ข้อผิดพลาด",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String role = User.login(username, password); // ได้ role กลับมา
+
+            if (role != null) {
+                JOptionPane.showMessageDialog(this,
+                        "เข้าสู่ระบบสำเร็จ!",
+                        "สำเร็จ",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+                dispose();
+                if (role.equalsIgnoreCase("admin")) {
+                    // 🔑 เปิดหน้า Admin
+                    new AdminDashboard().setVisible(true);
+                } else {
+                    // 👤 เปิดหน้า User ปกติ
+                    new AllProducts().setVisible(true);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+                        "ข้อผิดพลาด",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
         // ===== Signup Link =====
         JButton signupLink = new JButton("ยังไม่มีบัญชี? สมัครสมาชิก");
         signupLink.setBounds(50, 310, 300, 30);
@@ -71,7 +108,7 @@ public class ShoeStoreLogin extends base {
         });
         rightPanel.add(signupLink);
 
-        // ===== JScrollPane (เลื่อนได้ แต่ไม่โชว์ scrollbar) =====
+        // ===== JScrollPane =====
         JScrollPane scrollPane = new JScrollPane(rightPanel);
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(Color.WHITE);
@@ -84,11 +121,5 @@ public class ShoeStoreLogin extends base {
 
         setSize(1100, 700);
         setLocationRelativeTo(null);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new ShoeStoreLogin().setVisible(true);
-        });
     }
 }
