@@ -12,7 +12,7 @@ public class SessionChecker {
                 if ("admin".equalsIgnoreCase(session[1])) {
                     new StockAdjustMent().setVisible(true);
                 } else {
-                    new ShoeStoreLogin().setVisible(true);
+                    new MainFrame().setVisible(true);
                 }
             } else {
                 //ไม่มี session

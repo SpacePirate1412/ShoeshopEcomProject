@@ -2,7 +2,6 @@ package page;
 
 import java.awt.*;
 import javax.swing.*;
-
 public class ShoeStoreLogin extends base {
 
     public ShoeStoreLogin() {
@@ -86,7 +85,7 @@ public class ShoeStoreLogin extends base {
                 if ("admin".equalsIgnoreCase(role)) {
                     new StockAdjustMent().setVisible(true);
                 } else {
-                    ///new AllProducts().setVisible(true);
+                    new MainFrame().setVisible(true);
                 }
             } else {
                 JOptionPane.showMessageDialog(this,

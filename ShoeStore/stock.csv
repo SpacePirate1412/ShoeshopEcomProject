@@ -1,2 +1,9 @@
 SKU,Name,Brand,Price,Gender,Discount,Quantity
-"ST8790","Strike Star","Nike","4399","Men","12","2"
+"PD000001","Strike Star","Nike","4399","Men","12","2"
+"PD000002","Starter","Adidas","3500","Men","0","1"
+"PD000003","Begin","Puma","5000","Women","0","3"
+"PD000004","Deep","New Balance","2500","Men","0","6"
+"PD000005","Noodle","Nike","3400","Women","0","6"
+"PD000006","Arche","Nike","4000","Women","0","3"
+"PD000007","Low Star","Nike","2780","Women","0","8"
+"PD000008","Lower Town","Adidas","2500","Men","10","1"
