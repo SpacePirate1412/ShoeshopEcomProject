@@ -122,6 +122,21 @@ public class ShoppingCart {
         items.clear();
         checkRep(); // ตรวจสอบหลังการเปลี่ยนแปลง
     }
+    public void removeOne(String sku) {
+    for (java.util.Iterator<CartItem> it = items.iterator(); it.hasNext();) {
+        CartItem c = it.next();
+        if (c.getProduct().getSku().equalsIgnoreCase(sku)) {
+            int q = c.getQuantity() - 1;
+            if (q <= 0) {
+                it.remove();
+            } else {
+                c.setQuantity(q); 
+            }
+            break;
+        }
+    }
+}
+
 
     public List<CartItem> getItems() { 
         return new ArrayList<>(items); 

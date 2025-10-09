@@ -28,6 +28,11 @@ public class CartItem {
 
     public Product getProduct() { return product; }
     public int getQuantity() { return quantity; }
+    
+     public void setQuantity(int quantity) {
+        if (quantity < 0) quantity = 0;   // กันค่าติดลบ
+        this.quantity = quantity;
+    }
 /**
      * increase the amount in this list
      * @param amount the amount that you want to increase(must be positive)

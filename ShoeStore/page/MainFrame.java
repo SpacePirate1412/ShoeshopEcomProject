@@ -183,13 +183,15 @@ private void populateGrid(JPanel grid, List<Product> items) {
     grid.repaint();
 }
 
-private static final int CARD_W  = 200;
-private static final int CARD_H  = 240;
+
 private static final int IMG_H   = 100;
 private static final int BRAND_H = 16;
 private static final int NAME_H  = 28;  // เผื่อ 2 บรรทัด
 private static final int PRICE_H = 18;
-private static final int BTN_H   = 30;
+private static final int CARD_W = 220;
+private static final int CARD_H = 240;
+private static final int P = 10;        // padding ภายในการ์ด
+private static final int BTN_H = 32;
 
 private static String htmlWrap(String text, int widthPx) {
     if (text == null) text = "";
@@ -197,102 +199,134 @@ private static String htmlWrap(String text, int widthPx) {
     return "<html><div style='width:" + widthPx + "px'>" + text + "</div></html>";
 }
 
+private static final String PROMO_PLACEHOLDER = "Enter code...";
+private void applyPromoFromField() {
+    String code = jTextField2.getText().trim();
+
+    if (code.isEmpty()) {
+        updateCartSummary();       // รีเฟรชยอด
+        return;
+    }
+
+    boolean ok = pricing.applyPromoCode(code);
+    if (!ok) {
+        javax.swing.JOptionPane.showMessageDialog(this, "Invalid promo code!");
+        jTextField2.requestFocus();
+        jTextField2.selectAll();
+        // ไม่ตั้ง global promo ถ้าไม่ถูก
+        return;
+    }
+
+    // โค้ดถูก = รีเฟรชยอดให้เห็นส่วนลด
+    updateCartSummary();
+}
+
+// ปรับขนาดคงที่ของการ์ด/ปุ่ม
+
 private JPanel createProductCard(final Product p) {
-    JPanel card = new JPanel();
-    card.setPreferredSize(new Dimension(160, 195));
+    JPanel card = new JPanel(new BorderLayout());
     card.setBackground(Color.WHITE);
     card.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(230,230,230)));
+    card.setPreferredSize(new Dimension(CARD_W, CARD_H));
+    card.setMinimumSize(new Dimension(CARD_W, CARD_H));
+    card.setMaximumSize(new Dimension(CARD_W, Integer.MAX_VALUE));
 
-    // รูป (placeholder)
-    javax.swing.JLabel img = new javax.swing.JLabel("IMAGE", javax.swing.SwingConstants.CENTER);
-    img.setPreferredSize(new Dimension(143, 88));
+    // ===== เนื้อการ์ด =====
+    Box box = Box.createVerticalBox();
+    box.setBorder(javax.swing.BorderFactory.createEmptyBorder(P, P, P, P));
+
+    JLabel img = new JLabel("IMAGE", SwingConstants.CENTER);
     img.setOpaque(true);
     img.setBackground(new Color(245,245,245));
+    img.setAlignmentX(Component.LEFT_ALIGNMENT);
+    img.setPreferredSize(new Dimension(CARD_W - 2*P, 110));
 
-    javax.swing.JLabel brand = new javax.swing.JLabel(p.getBrand());
+    JLabel brand = new JLabel(p.getBrand());
     brand.setFont(brand.getFont().deriveFont(Font.BOLD, 12f));
-    javax.swing.JLabel name = new javax.swing.JLabel(p.getName());
-    name.setFont(name.getFont().deriveFont(Font.BOLD, 10f));
+    brand.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-    javax.swing.JPanel pricePanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+    JLabel name = new JLabel(htmlWrap(p.getName(), CARD_W - 2*P));
+    name.setFont(name.getFont().deriveFont(Font.PLAIN, 11f));
+    name.setForeground(new Color(70,70,70));
+    name.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    JPanel pricePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
     pricePanel.setOpaque(false);
+    pricePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
     if (p.getDiscountPercent() != 0.0) {
-        javax.swing.JLabel orig = new javax.swing.JLabel("฿ " + THB.format(Math.round(p.getPrice())));
+        JLabel orig = new JLabel("฿ " + THB.format(Math.round(p.getPrice())));
         orig.setFont(orig.getFont().deriveFont(Font.PLAIN, 10f));
         orig.setForeground(Color.GRAY);
         orig.setText("<html><strike>" + orig.getText() + "</strike></html>");
 
         double after = p.getPriceAfterBuiltInDiscount();
-        javax.swing.JLabel now = new javax.swing.JLabel("฿ " + THB.format(Math.round(after)));
+        JLabel now = new JLabel("฿ " + THB.format(Math.round(after)));
         now.setFont(now.getFont().deriveFont(Font.BOLD, 11f));
-        pricePanel.add(orig);
-        pricePanel.add(now);
+        pricePanel.add(orig); pricePanel.add(now);
     } else {
-        javax.swing.JLabel now = new javax.swing.JLabel("฿ " + THB.format(Math.round(p.getPrice())));
+        JLabel now = new JLabel("฿ " + THB.format(Math.round(p.getPrice())));
         now.setFont(now.getFont().deriveFont(Font.BOLD, 11f));
         pricePanel.add(now);
     }
 
-    // ปุ่มและป้ายจำนวนในตะกร้า
-    javax.swing.JButton add = new javax.swing.JButton("Add to Cart");
+    JButton add = new JButton("Add to Cart");
     add.setBackground(Color.BLACK);
     add.setForeground(Color.WHITE);
+    add.setFocusPainted(false);
+    add.setAlignmentX(Component.LEFT_ALIGNMENT);
+    // ให้ปุ่มกว้าง “เต็มการ์ด”
+    add.setPreferredSize(new Dimension(CARD_W - 2*P, BTN_H));
+    add.setMaximumSize(new Dimension(Integer.MAX_VALUE, BTN_H));
 
-    final javax.swing.JLabel qtyLabel = new javax.swing.JLabel();
+    final JLabel qtyLabel = new JLabel();
     qtyLabel.setFont(qtyLabel.getFont().deriveFont(Font.BOLD, 10f));
     qtyLabel.setForeground(new Color(60,60,60));
-    qtyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+    qtyLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-    // เซ็ตจำนวนเริ่มต้นตามตะกร้า
     int startQty = getQtyInCart(p.getSku());
-    if (startQty > 0) {
-        qtyLabel.setText("In cart: " + startQty);
-        qtyLabel.setVisible(true);
-    } else {
-        qtyLabel.setVisible(false);
-    }
+    qtyLabel.setText("In cart: " + startQty);
+    qtyLabel.setVisible(startQty > 0);
     skuToQtyLabel.put(p.getSku(), qtyLabel);
 
     add.addActionListener(new ActionListener() {
-        @Override public void actionPerformed(ActionEvent e) {
-            try {
-                cart.addItem(p.getSku(), 1);                 // เพิ่มลงตะกร้า
-                int q = getQtyInCart(p.getSku());            // จำนวนล่าสุด
-                javax.swing.JLabel lbl = skuToQtyLabel.get(p.getSku());
-                if (lbl != null) { 
-                    lbl.setText("In cart: " + q);
-                    lbl.setVisible(q > 0);
-                }
-                refreshCartListPanel();                      // รีเฟรชหน้า Cart + สรุปยอด
-            } catch (Exception ex) {
-                javax.swing.JOptionPane.showMessageDialog(
-                    MainFrame.this,
-                    "Add to cart failed: " + ex.getMessage(),
-                    "Error",
-                    javax.swing.JOptionPane.ERROR_MESSAGE
-                );
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        try {
+            cart.addItem(p.getSku(), 1);
+            int q = getQtyInCart(p.getSku());
+            JLabel lbl = skuToQtyLabel.get(p.getSku());
+            if (lbl != null) {
+                lbl.setText("In cart: " + q);
+                lbl.setVisible(q > 0);
             }
+            refreshCartListPanel();
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(
+                MainFrame.this,
+                "Add to cart failed: " + ex.getMessage(),
+                "Error",
+                javax.swing.JOptionPane.ERROR_MESSAGE
+            );
         }
-    });
+    }
+});
 
-    javax.swing.Box box = javax.swing.Box.createVerticalBox();
-    box.add(javax.swing.Box.createVerticalStrut(6));
+
     box.add(img);
-    box.add(javax.swing.Box.createVerticalStrut(6));
+    box.add(Box.createVerticalStrut(6));
     box.add(brand);
     box.add(name);
-    box.add(javax.swing.Box.createVerticalStrut(4));
+    box.add(Box.createVerticalStrut(4));
     box.add(pricePanel);
-    box.add(javax.swing.Box.createVerticalStrut(6));
+    box.add(Box.createVerticalStrut(8));
     box.add(add);
-    box.add(javax.swing.Box.createVerticalStrut(4));
-    box.add(qtyLabel);                      // <<— ป้ายจำนวนในตะกร้า
-    box.add(javax.swing.Box.createVerticalStrut(6));
+    box.add(Box.createVerticalStrut(4));
+    box.add(qtyLabel);
 
-    card.setLayout(new BorderLayout());
     card.add(box, BorderLayout.CENTER);
     return card;
 }
+
 
 
 
@@ -362,6 +396,27 @@ private void setupCartPage() {
     Cart.revalidate();
     Cart.repaint();
 }
+/** ลดสินค้าทีละ 1 ชิ้นสำหรับ sku ที่ระบุ แล้วรีเฟรชหน้าจอ */
+private void removeOneFromCart(String sku) {
+    try {
+        cart.removeOne(sku);
+        // อัปเดตป้ายจำนวนบนการ์ดสินค้า (ฝั่งหน้า New/Men/Women/Deal)
+        int q = getQtyInCart(sku);
+        javax.swing.JLabel lbl = skuToQtyLabel.get(sku);
+        if (lbl != null) {
+            lbl.setText("In cart: " + q);
+            lbl.setVisible(q > 0);
+        }
+
+        // รีเฟรชฝั่งรายการ + สรุปยอด
+        refreshCartListPanel();
+    } catch (Exception ex) {
+        javax.swing.JOptionPane.showMessageDialog(
+            this, "Remove failed: " + ex.getMessage(),
+            "Error", javax.swing.JOptionPane.ERROR_MESSAGE
+        );
+    }
+}
 
 /** คืนจำนวนที่สินค้า sku นี้อยู่ในตะกร้า */
 private int getQtyInCart(String sku) {
@@ -382,24 +437,47 @@ private void refreshCartListPanel() {
 
     int row = 0;
     for (CartItem it : cart.getItems()) {
-        JPanel rowPanel = new JPanel(new BorderLayout());
-        rowPanel.setBackground(Color.WHITE);
-        rowPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(230, 230, 230)));
+    JPanel rowPanel = new JPanel(new BorderLayout());
+    rowPanel.setBackground(Color.WHITE);
+    rowPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(230, 230, 230)));
 
-        String name = it.getProduct().getBrand() + "  " + it.getProduct().getName();
-        javax.swing.JLabel left = new javax.swing.JLabel(name);
-        left.setFont(left.getFont().deriveFont(Font.BOLD, 14f));
+    String sku  = it.getProduct().getSku();
+    String name = it.getProduct().getBrand() + "  " + it.getProduct().getName();
+    javax.swing.JLabel left = new javax.swing.JLabel(name);
+    left.setFont(left.getFont().deriveFont(Font.BOLD, 14f));
 
-        double sub = it.getProduct().getPriceAfterBuiltInDiscount() * it.getQuantity();
-        javax.swing.JLabel right = new javax.swing.JLabel("x" + it.getQuantity() + "   ฿ " + THB.format(Math.round(sub)));
-        right.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+    double sub = it.getProduct().getPriceAfterBuiltInDiscount() * it.getQuantity();
+    javax.swing.JLabel rightLabel = new javax.swing.JLabel("x" + it.getQuantity() + "   ฿ " + THB.format(Math.round(sub)));
+    rightLabel.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
 
-        rowPanel.add(left, BorderLayout.WEST);
-        rowPanel.add(right, BorderLayout.EAST);
-
-        gc.gridx = 0; gc.gridy = row++;
-        jPanel1.add(rowPanel, gc);
+    // === ปุ่มลดจำนวน –  ===
+    javax.swing.JButton minus = new javax.swing.JButton(" - ");
+    minus.setMargin(new Insets(1, 6, 1, 6));
+    minus.setFocusable(false);
+    minus.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(180,180,180)));
+    minus.setBackground(Color.WHITE);
+    minus.setToolTipText("ลบ 1 ชิ้น");
+    final String skuFinal = sku;
+    minus.addActionListener(new java.awt.event.ActionListener() {
+    @Override
+    public void actionPerformed(java.awt.event.ActionEvent e) {
+        removeOneFromCart(skuFinal);
     }
+});
+
+    // กล่องขวา: label + ปุ่ม –
+    JPanel rightBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 6));
+    rightBox.setOpaque(false);
+    rightBox.add(rightLabel);
+    rightBox.add(minus);
+
+    rowPanel.add(left, BorderLayout.WEST);
+    rowPanel.add(rightBox, BorderLayout.EAST);
+
+    gc.gridx = 0; gc.gridy = row++;
+    jPanel1.add(rowPanel, gc);
+}
+
 
     // ดันช่องว่างด้านล่าง
     gc.weighty = 1; gc.gridy = row;
@@ -2481,6 +2559,23 @@ private void setupConfirmPage() {
                     .addComponent(jLabel58))
                 .addGap(19, 19, 19))
         );
+        // สีเทาสำหรับ placeholder ถูกตั้งไว้แล้วด้านบน
+jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
+    @Override
+    public void focusGained(java.awt.event.FocusEvent e) {
+        if (PROMO_PLACEHOLDER.equals(jTextField2.getText())) {
+            jTextField2.setText("");
+            jTextField2.setForeground(java.awt.Color.BLACK); // พร้อมพิมพ์
+        }
+    }
+    @Override
+    public void focusLost(java.awt.event.FocusEvent e) {
+        if (jTextField2.getText().trim().isEmpty()) {
+            jTextField2.setText(PROMO_PLACEHOLDER);
+            jTextField2.setForeground(new java.awt.Color(204,204,204)); // กลับเป็น placeholder
+        }
+    }
+});
 
         jTextField2.setFont(new java.awt.Font("Segoe UI", 3, 24)); // NOI18N
         jTextField2.setForeground(new java.awt.Color(204, 204, 204));
@@ -3114,16 +3209,25 @@ private void setupConfirmPage() {
     }//GEN-LAST:event_jTextField3ActionPerformed
 
     private void jTextField2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField2ActionPerformed
-    String code = jTextField2.getText();
-    boolean ok = pricing.applyPromoCode(code);  // คืน true ถ้าโค้ดถูกต้อง
-
-    if (!ok) {
-        javax.swing.JOptionPane.showMessageDialog(this, "Promo code ไม่ถูกต้อง");
-    }
-    updateCartSummary(); // รีเฟรชยอดรวมหลังใช้โค้ด
+        applyPromoFromField();   // ลองใช้โค้ด + อัปเดตยอด
 }//GEN-LAST:event_jTextField2ActionPerformed
 
     private void jButton13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton13ActionPerformed
+        String code = jTextField2.getText().trim();
+
+    // ถ้ามีการกรอกโค้ด ให้ตรวจอีกครั้งก่อนอนุญาตไปต่อ
+    if (!code.isEmpty()) {
+        if (!pricing.applyPromoCode(code)) {
+            javax.swing.JOptionPane.showMessageDialog(this, "Invalid promo code!");
+            jTextField2.requestFocus();
+            jTextField2.selectAll();
+            return;  // <<< จุดสำคัญ: หยุดไม่ให้ไปต่อ
+        }
+    } else {
+    }
+
+    // โค้ดถูก (หรือไม่ได้กรอก) = ไปขั้นถัดไปได้
+    // ... เปิดหน้า Shipping / ทำงานต่อ
         motherpanel.removeAll();
         motherpanel.add(Purchase);
         motherpanel.repaint();
@@ -3166,7 +3270,13 @@ private void setupConfirmPage() {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new MainFrame().setVisible(true));
+      java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
+                public void run() {
+                new MainFrame().setVisible(true);
+            }
+});
+
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
