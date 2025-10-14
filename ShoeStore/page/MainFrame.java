@@ -12,7 +12,10 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
+import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
+import java.io.*;
+import java.util.stream.*;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -20,6 +23,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 
 import lib.*;
 import lib.discount.DefaultPricingStrategy;
@@ -36,53 +40,59 @@ public class MainFrame extends javax.swing.JFrame {
         private final JPanel womenGrid = new JPanel(new GridBagLayout());    // กริดของหน้า Women
         private final JPanel dealGrid  = new JPanel(new GridBagLayout());    // กริดของหน้า Special Deal
         private final NumberFormat THB = NumberFormat.getNumberInstance(new Locale("th","TH")); //สร้างตัวจัดรูปแบบตัวเลขสำหรับ รูปแบบราคาตัวเลขแบบของไทยแล้วเก็บไว้ในตัวแปร THB
-        // —————————— Shopping cart ——————————
+        //  Shopping cart 
         private final PricingService pricing = new PricingService();
         private final ShoppingCart cart = new ShoppingCart(pricing, catalog);
         // ป้ายจำนวนบนการ์ดสินค้า (key = SKU)
         private final Map<String, javax.swing.JLabel> skuToQtyLabel = new HashMap<>();
-
-        private void setupWomenArea() {
-            ProductWomen.removeAll();
-            ProductWomen.setLayout(new BorderLayout());
-            ProductWomen.add(jTextField5, BorderLayout.NORTH);   
-         configureSpacedGrid(womenGrid);                      
-            ProductWomen.add(womenGrid, BorderLayout.CENTER);
-            ProductWomen.revalidate();ProductWomen.repaint();
+        private static final Path STOCK_CSV = Paths.get("stock.csv"); // path หาไฟล์ stock.csv
+        // ดึงข้อมูลผู้ใช้
+        private static final Path USERS_CSV = Paths.get("users.csv"); // path หาไฟล์ user.csv
+        private UserProfile currentUserProfile = null; // profile ของ user
+        private static class UserProfile {
+    String username, password, email, fullname, house, subdistrict, district, province, zipcode, phone, role;
+    String[] toArray() {
+        return new String[]{ username, password, email, fullname, house, subdistrict, district, province, zipcode, phone, role };
+    }
+}
+    // จัดหน้าสินค้าผู้หญิง
+    private void setupWomenArea() {
+    ProductWomen.removeAll();
+    ProductWomen.setLayout(new BorderLayout());
+    ProductWomen.add(jTextField5, BorderLayout.NORTH);
+    configureSpacedGrid(womenGrid);
+    ProductWomen.add(makeScroll(womenGrid), BorderLayout.CENTER);
+    ProductWomen.revalidate(); ProductWomen.repaint();
+}
+    // จัดหน้าสินค้าลดราคา
+    private void setupDealArea() {
+    ProductSD.removeAll();
+    ProductSD.setLayout(new BorderLayout());
+    ProductSD.add(jTextField6, BorderLayout.NORTH);
+    configureSpacedGrid(dealGrid);
+    ProductSD.add(makeScroll(dealGrid), BorderLayout.CENTER);
+    ProductSD.revalidate(); ProductSD.repaint();
+}
+    // จัดหน้าสินค้าใหม่
+    private void setupNewArea() {
+    ProductNew.removeAll();
+    ProductNew.setLayout(new BorderLayout());
+    ProductNew.add(jTextField4, BorderLayout.NORTH);
+    configureSpacedGrid(NewShowProduct);             // ช่องว่างคงที่ 4 คอลัมน์
+    ProductNew.add(makeScroll(NewShowProduct), BorderLayout.CENTER);
+    ProductNew.revalidate(); ProductNew.repaint();
+}
+    // จัดหน้าสินค้าผู้ชาย
+    private void setupMenArea() {
+    ProductMen.removeAll();
+    ProductMen.setLayout(new BorderLayout());
+    ProductMen.add(jTextField3, BorderLayout.NORTH);
+    configureSpacedGrid(NewShowProduct7);
+    ProductMen.add(makeScroll(NewShowProduct7), BorderLayout.CENTER);
+    ProductMen.revalidate(); ProductMen.repaint();
 }
 
-        private void setupDealArea() {
-            ProductSD.removeAll();
-            ProductSD.setLayout(new BorderLayout());
-            ProductSD.add(jTextField6, BorderLayout.NORTH);      
-        configureSpacedGrid(dealGrid);                       
-            ProductSD.add(dealGrid, BorderLayout.CENTER);
-            ProductSD.revalidate();ProductSD.repaint();
-}
-        private void setupNewArea() {
-            ProductNew.removeAll();
-            ProductNew.setLayout(new BorderLayout());
-        // แถบหัวเรื่อง
-            ProductNew.add(jTextField4, BorderLayout.NORTH);
-        // โชว์สินค้าในกริดผ่านสกรอลล์พาเนล
-        JScrollPane sp = new JScrollPane(NewShowProduct);
-            sp.setBorder(null);
-            sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-            sp.getVerticalScrollBar().setUnitIncrement(24);
-            ProductNew.add(sp, BorderLayout.CENTER);
-}
-
-        private void setupMenArea() {
-            ProductMen.removeAll();
-            ProductMen.setLayout(new BorderLayout());
-            ProductMen.add(jTextField3, BorderLayout.NORTH);
-        JScrollPane sp = new JScrollPane(NewShowProduct7);
-            sp.setBorder(null);
-            sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-            sp.getVerticalScrollBar().setUnitIncrement(24);
-            ProductMen.add(sp, BorderLayout.CENTER);
-}
-
+        // เริ่มมาโชว์หน้าสินค้าใหม่
         private void showNew() {
             catalog.reload();
             ArrayList<Product> all = new ArrayList<Product>(catalog.getAllProducts());
@@ -93,7 +103,7 @@ public class MainFrame extends javax.swing.JFrame {
             onlyNoDiscount.add(p);
         }
     }
-    int from = Math.max(onlyNoDiscount.size() - 4, 0); //เอาสินค้า 4 อันล่าสุดที่ไม่ได้มีการลดราคามา
+    int from = Math.max(onlyNoDiscount.size() - 8, 0); //เอาสินค้า 8 อันล่าสุดที่ไม่ได้มีการลดราคามา
     ArrayList<Product> last5 = new ArrayList<Product>();
     for (int i = from; i < onlyNoDiscount.size(); i++) {
         last5.add(onlyNoDiscount.get(i));
@@ -108,7 +118,7 @@ public class MainFrame extends javax.swing.JFrame {
             List<Product> all = catalog.getAllProducts();
         for (int i = 0; i < all.size(); i++) {
             Product p = all.get(i);
-        if ("Men".equalsIgnoreCase(p.getGender()) && p.getDiscountPercent() == 0.0) {
+        if ("Men".equalsIgnoreCase(p.getGender())) {
             men.add(p);
         }
     }
@@ -122,7 +132,7 @@ public class MainFrame extends javax.swing.JFrame {
             List<Product> all = catalog.getAllProducts();
         for (int i = 0; i < all.size(); i++) {
             Product p = all.get(i);
-        if ("Women".equalsIgnoreCase(p.getGender()) && p.getDiscountPercent() == 0.0) {
+        if ("Women".equalsIgnoreCase(p.getGender())) {
             women.add(p);
         }
     }
@@ -143,7 +153,7 @@ public class MainFrame extends javax.swing.JFrame {
 }
 private void updateCartSummary() {
     double total = cart.getTotalPrice();                 // จะคิดส่วนลด/โปรโมโค้ดให้เอง
-    jLabel58.setText("฿ " + THB.format(Math.round(total)));  // Grand Total
+    jLabel58.setText(THB.format(Math.round(total)));  // Grand Total
     // ถ้าจะโชว์ subtotal/discount แยก ค่อยคำนวณเพิ่มทีหลังได้
 }
 
@@ -156,19 +166,34 @@ private void ensureGridBag(JPanel panel) {
 /** ใช้คอลัมน์เว้นช่องแบบเดียวกับ New/Men: 0,15,0,15,0,15,0 */
 private void configureSpacedGrid(JPanel grid) {
     GridBagLayout gbl = new GridBagLayout();
-    gbl.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0}; // 4 คอลัมน์จริง + ช่องว่าง
-    gbl.rowHeights  = new int[] {0, 12, 0};                // 2 แถวจริง + ช่องว่าง
+    gbl.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
+    gbl.rowHeights  = new int[] {0, 12, 0};
+    gbl.columnWeights = new double[] {0, 0, 0, 0, 0, 0, 0};  // กันคอลัมน์ยืด
+    gbl.rowWeights    = new double[] {0, 0, 0};              // กันแถวยืด
     grid.setLayout(gbl);
-    grid.setBackground(Color.WHITE);
+}
+/** ห่อ grid ด้วย JScrollPane (ไม่ให้มี scrollbar แนวนอน) */
+private JScrollPane makeScroll(JPanel grid) {
+    JScrollPane sp = new JScrollPane(
+            grid,
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+    );
+    sp.setBorder(null);
+    sp.getVerticalScrollBar().setUnitIncrement(24);
+    return sp;
 }
 
+//เพิ่มช่องว่างระหว่างการ์ด
 private void populateGrid(JPanel grid, List<Product> items) {
     grid.removeAll();
 
     GridBagConstraints gc = new GridBagConstraints();
-    gc.insets = new Insets(0, 0, 0, 0);    // ระยะเว้นใช้จาก columnWidths/rowHeights แล้ว
-    gc.fill = GridBagConstraints.HORIZONTAL;
-    gc.weightx = 1.0;
+    gc.insets = new Insets(0, 0, 0, 0);
+    gc.fill = GridBagConstraints.NONE;
+    gc.weightx = 0;
+    gc.weighty = 0;
+    gc.anchor = GridBagConstraints.NORTHWEST;
     int col = 0, row = 0;
     final int COLS = 4; // 4 ช่องต่อแถวเหมือนหน้า New/Men
     for (int i = 0; i < items.size(); i++) {
@@ -200,56 +225,125 @@ private static String htmlWrap(String text, int widthPx) {
 }
 
 private static final String PROMO_PLACEHOLDER = "Enter code...";
+//ตรวจว่าโค้ดว่างจริงไหม
+private boolean isPromoBlank() {
+    String t = jTextField2.getText();
+    return t == null || t.trim().isEmpty() || PROMO_PLACEHOLDER.equals(t.trim());
+}
 private void applyPromoFromField() {
-    String code = jTextField2.getText().trim();
-
-    if (code.isEmpty()) {
-        updateCartSummary();       // รีเฟรชยอด
+    if (isPromoBlank()) {          //ว่างหรือเป็น placeholder = ไม่ต้องเช็คโค้ด
+        updateCartSummary();
         return;
     }
-
+    String code = jTextField2.getText().trim();
     boolean ok = pricing.applyPromoCode(code);
     if (!ok) {
         javax.swing.JOptionPane.showMessageDialog(this, "Invalid promo code!");
         jTextField2.requestFocus();
         jTextField2.selectAll();
-        // ไม่ตั้ง global promo ถ้าไม่ถูก
         return;
     }
-
-    // โค้ดถูก = รีเฟรชยอดให้เห็นส่วนลด
     updateCartSummary();
 }
+/** โหลดรูปจาก /page/Picture/shoes/<sku>.png และย่อให้พอดีกล่อง */
+private javax.swing.ImageIcon loadProductIcon(String sku, int maxW, int maxH) {
+    try {
+        java.net.URL url = getClass().getResource("/page/Picture/shoes/" + sku + ".png");
+        if (url == null) return null;
 
-// ปรับขนาดคงที่ของการ์ด/ปุ่ม
+        javax.swing.ImageIcon raw = new javax.swing.ImageIcon(url);
+        int w = raw.getIconWidth(), h = raw.getIconHeight();
+        if (w <= 0 || h <= 0) return null;
 
+        double scale = Math.min((double) maxW / w, (double) maxH / h);
+        if (scale < 1.0) {
+            java.awt.Image scaled = raw.getImage().getScaledInstance(
+                (int)Math.round(w * scale),
+                (int)Math.round(h * scale),
+                java.awt.Image.SCALE_SMOOTH
+            );
+            return new javax.swing.ImageIcon(scaled);
+        }
+        return raw;
+    } catch (Exception ex) {
+        return null;
+    }
+}
+//ตั้งภาษาไทย
+private static String pickThaiFontFamily() {
+    String[] preferred = {
+        "Sarabun", "Noto Sans Thai", "TH Sarabun New",
+        "Leelawadee UI", "Leelawadee", "Tahoma", "Segoe UI",
+        "Cordia New", "Arial Unicode MS"
+    };
+    String probe = "ภาษาไทยทดสอบ";
+    java.awt.GraphicsEnvironment ge = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment();
+    for (String f : preferred) {
+        try {
+            java.awt.Font ft = new java.awt.Font(f, java.awt.Font.PLAIN, 16);
+            if (ft.canDisplayUpTo(probe) == -1) return f;
+        } catch (Exception ignore) {}
+    }
+    // ถ้าไม่เจออะไรเลย ให้ใช้ฟอนต์ระบบ
+    return new java.awt.Font(null, java.awt.Font.PLAIN, 16).getFamily();
+}
+
+public static void installThaiUIFont(float sizePts) {
+    String family = pickThaiFontFamily();
+    java.awt.Font base = new java.awt.Font(family, java.awt.Font.PLAIN, Math.round(sizePts))
+            .deriveFont(sizePts);
+
+    javax.swing.UIDefaults d = javax.swing.UIManager.getDefaults();
+    java.util.Enumeration<?> e = d.keys();
+    while (e.hasMoreElements()) {
+        Object key = e.nextElement();
+        Object val = d.get(key);
+        if (val instanceof javax.swing.plaf.FontUIResource) {
+            d.put(key, new javax.swing.plaf.FontUIResource(base));
+        }
+    }
+}
+
+// สร้างการ์ดสินค้า,ปรับขนาดคงที่ของการ์ด/ปุ่ม
 private JPanel createProductCard(final Product p) {
     JPanel card = new JPanel(new BorderLayout());
     card.setBackground(Color.WHITE);
     card.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(230,230,230)));
     card.setPreferredSize(new Dimension(CARD_W, CARD_H));
     card.setMinimumSize(new Dimension(CARD_W, CARD_H));
-    card.setMaximumSize(new Dimension(CARD_W, Integer.MAX_VALUE));
+    card.setMaximumSize(new Dimension(CARD_W, CARD_H));
 
     // ===== เนื้อการ์ด =====
     Box box = Box.createVerticalBox();
     box.setBorder(javax.swing.BorderFactory.createEmptyBorder(P, P, P, P));
 
-    JLabel img = new JLabel("IMAGE", SwingConstants.CENTER);
+    int imgBoxW = CARD_W - 2 * P;
+    int imgBoxH = 110; // ความสูงพื้นที่รูป
+    // เซ็ตรูป
+    javax.swing.JLabel img = new javax.swing.JLabel("", javax.swing.SwingConstants.CENTER);
     img.setOpaque(true);
-    img.setBackground(new Color(245,245,245));
-    img.setAlignmentX(Component.LEFT_ALIGNMENT);
-    img.setPreferredSize(new Dimension(CARD_W - 2*P, 110));
+    img.setBackground(new java.awt.Color(245, 245, 245));
+    img.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+    img.setPreferredSize(new java.awt.Dimension(imgBoxW, imgBoxH));
 
+    javax.swing.ImageIcon icon = loadProductIcon(p.getSku(), imgBoxW, imgBoxH);
+    if (icon != null) {
+        img.setIcon(icon);
+    } else {
+        img.setText("IMAGE"); // ถ้าไม่พบไฟล์ให้ขึ้นข้อความ
+    }
+    img.setToolTipText(p.getSku()); // โชว์รหัสเวลา hover
     JLabel brand = new JLabel(p.getBrand());
     brand.setFont(brand.getFont().deriveFont(Font.BOLD, 12f));
     brand.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+    // ชื่อสินค้า 
     JLabel name = new JLabel(htmlWrap(p.getName(), CARD_W - 2*P));
-    name.setFont(name.getFont().deriveFont(Font.PLAIN, 11f));
-    name.setForeground(new Color(70,70,70));
+    name.setFont(name.getFont().deriveFont(Font.PLAIN, 11f)); 
+    name.setForeground(new Color(70, 70, 70));
     name.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+    // ราคา
     JPanel pricePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
     pricePanel.setOpaque(false);
     pricePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -259,24 +353,29 @@ private JPanel createProductCard(final Product p) {
         orig.setForeground(Color.GRAY);
         orig.setText("<html><strike>" + orig.getText() + "</strike></html>");
 
+        // มีส่วนลด
         double after = p.getPriceAfterBuiltInDiscount();
         JLabel now = new JLabel("฿ " + THB.format(Math.round(after)));
         now.setFont(now.getFont().deriveFont(Font.BOLD, 11f));
         pricePanel.add(orig); pricePanel.add(now);
+
     } else {
+        //ไม่มีส่วนลด
         JLabel now = new JLabel("฿ " + THB.format(Math.round(p.getPrice())));
         now.setFont(now.getFont().deriveFont(Font.BOLD, 11f));
         pricePanel.add(now);
     }
 
+   //ปุ่ม Add
     JButton add = new JButton("Add to Cart");
     add.setBackground(Color.BLACK);
     add.setForeground(Color.WHITE);
     add.setFocusPainted(false);
     add.setAlignmentX(Component.LEFT_ALIGNMENT);
+
     // ให้ปุ่มกว้าง “เต็มการ์ด”
     add.setPreferredSize(new Dimension(CARD_W - 2*P, BTN_H));
-    add.setMaximumSize(new Dimension(Integer.MAX_VALUE, BTN_H));
+    add.setMaximumSize(new Dimension(CARD_W - 2*P, BTN_H));
 
     final JLabel qtyLabel = new JLabel();
     qtyLabel.setFont(qtyLabel.getFont().deriveFont(Font.BOLD, 10f));
@@ -288,6 +387,7 @@ private JPanel createProductCard(final Product p) {
     qtyLabel.setVisible(startQty > 0);
     skuToQtyLabel.put(p.getSku(), qtyLabel);
 
+    //เพิ่มสินค้าลงตะกร้า
     add.addActionListener(new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -309,8 +409,8 @@ private JPanel createProductCard(final Product p) {
             );
         }
     }
-});
 
+});
 
     box.add(img);
     box.add(Box.createVerticalStrut(6));
@@ -322,14 +422,227 @@ private JPanel createProductCard(final Product p) {
     box.add(add);
     box.add(Box.createVerticalStrut(4));
     box.add(qtyLabel);
-
     card.add(box, BorderLayout.CENTER);
     return card;
 }
+// อ่านทั้งไฟล์ (ข้าม header แถวแรก)
+private List<String> readAllLinesSmart(Path path) throws IOException {
+    byte[] data = Files.readAllBytes(path);
 
+    // มี BOM → UTF-8 แน่นอน(อ่านภาษาไทยได้)
+    if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
+        return Arrays.asList(new String(data, StandardCharsets.UTF_8).split("\\R"));
+    }
 
+    String asUtf8 = new String(data, StandardCharsets.UTF_8);
+    if (asUtf8.indexOf('\uFFFD') >= 0) {
+        return Files.readAllLines(path, java.nio.charset.Charset.forName("TIS-620")); // หรือ "x-windows-874"
+    }
+    return Arrays.asList(asUtf8.split("\\R"));
+}
 
+private List<UserProfile> readAllUsers() {
+    try {
+        if (!Files.exists(USERS_CSV)) return new ArrayList<>();
+        List<String> lines = readAllLinesSmart(USERS_CSV);
+        if (lines.isEmpty()) return new ArrayList<>();
+        // กันกรณี header มี BOM ค้าง
+        lines.set(0, lines.get(0).replace("\uFEFF", ""));
 
+        List<UserProfile> list = new ArrayList<>();
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.isEmpty()) continue;
+            String[] c = line.split(",", -1);
+            if (c.length < 11) continue;
+
+            UserProfile u = new UserProfile();
+            u.username    = c[0].trim();
+            u.password    = c[1].trim();
+            u.email       = c[2].trim();
+            u.fullname    = c[3].trim();
+            u.house       = c[4].trim();
+            u.subdistrict = c[5].trim();
+            u.district    = c[6].trim();
+            u.province    = c[7].trim();
+            u.zipcode     = c[8].trim();
+            u.phone       = c[9].trim();
+            u.role        = c[10].trim();
+            list.add(u);
+        }
+        return list;
+    } catch (IOException e) {
+        e.printStackTrace();
+        return new ArrayList<>();
+    }
+}
+// อ่าน stock.csv แล้วหักจำนวนตามที่ซื้อ; ถ้าจำนวนใหม่ = 0 จะลบแถวนั้นทิ้ง
+private void reduceStockByCartAndClear() {
+    // รวมจำนวนต่อ SKU ที่ซื้อ
+    Map<String,Integer> buyMap = new HashMap<>();
+    for (CartItem it : cart.getItems()) {
+        buyMap.merge(it.getProduct().getSku(), it.getQuantity(), Integer::sum);
+    }
+    if (buyMap.isEmpty()) return;
+
+    try {
+        if (!Files.exists(STOCK_CSV)) {
+            javax.swing.JOptionPane.showMessageDialog(this, "ไม่พบไฟล์ stock.csv");
+            return;
+        }
+        List<String> lines = Files.readAllLines(STOCK_CSV, StandardCharsets.UTF_8);
+        if (lines.isEmpty()) return;
+
+        String header = lines.get(0);
+        String[] cols = header.split(",", -1);
+        int idxSku = -1, idxQty = -1;
+        for (int i = 0; i < cols.length; i++) {
+            String c = cols[i].trim().toLowerCase();
+            if (c.equals("sku") || c.equals("id")) idxSku = i;
+            if (c.equals("quantity") || c.equals("qty") || c.equals("stock")) idxQty = i;
+        }
+        if (idxSku < 0 || idxQty < 0) {
+            javax.swing.JOptionPane.showMessageDialog(this, "stock.csv ต้องมีคอลัมน์ sku และ quantity/qty/stock");
+            return;
+        }
+
+        List<String> out = new ArrayList<>();
+        out.add(header);
+
+        for (int i = 1; i < lines.size(); i++) {
+            String line = lines.get(i).trim();
+            if (line.isEmpty()) continue;
+
+            String[] c = line.split(",", -1);
+            if (c.length < cols.length) { out.add(line); continue; }
+
+            String sku = c[idxSku].trim();
+            Integer bought = buyMap.get(sku);
+            if (bought == null) { out.add(line); continue; }
+
+            int oldQty = 0;
+            try { oldQty = Integer.parseInt(c[idxQty].trim()); } catch (Exception ignore) {}
+            int newQty = Math.max(0, oldQty - bought);
+
+            if (newQty == 0) {
+                // ไม่เขียนแถวนี้ออกไป = ลบสินค้าออกจากไฟล์
+            } else {
+                c[idxQty] = String.valueOf(newQty);
+                out.add(String.join(",", c));
+            }
+        }
+
+        Files.write(STOCK_CSV, out, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+    } catch (IOException e) {
+        e.printStackTrace();
+        javax.swing.JOptionPane.showMessageDialog(this, "อัปเดตสต็อกไม่สำเร็จ: " + e.getMessage());
+    }
+
+    // ล้างตะกร้า + อัปเดต UI
+    cart.clearCart();  // ← ใช้เมธอดของคุณ
+    for (javax.swing.JLabel lbl : skuToQtyLabel.values()) {
+        lbl.setText("In cart: 0");
+        lbl.setVisible(false);
+    }
+    refreshCartListPanel();
+    updateOrderSummary();
+}
+
+private void writeAllUsers(List<UserProfile> users) {
+    try {
+        List<String> out = new ArrayList<>();
+        out.add("username,password,email,fullname,house,subdistrict,district,province,zipcode,phone,role");
+        for (UserProfile u : users) {
+            out.add(Arrays.stream(u.toArray())
+                    .map(s -> s == null ? "" : s.replace(",", " "))
+                    .collect(Collectors.joining(",")));
+        }
+
+        Path parent = USERS_CSV.getParent();
+        if (parent != null) Files.createDirectories(parent);
+
+        // เขียนแบบ UTF-8 + BOM
+        try (BufferedWriter w = Files.newBufferedWriter(
+                USERS_CSV, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            w.write('\uFEFF');                 // BOM
+            for (String line : out) {
+                w.write(line);
+                w.newLine();
+            }
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+        javax.swing.JOptionPane.showMessageDialog(this, "บันทึก users.csv ไม่สำเร็จ: " + e.getMessage());
+    }
+}
+
+// อ่าน users ทั้งหมดจาก users.csv แล้วหา "ผู้ใช้ที่ล็อกอินอยู่" จาก Session
+private UserProfile findCurrentUser(List<UserProfile> all) {
+    String sessionUsername = null;
+    try {
+        String[] sess = Session.loadSession();   // ← อยู่ package เดียวกัน page.Session
+        if (sess != null && sess.length >= 1) {
+            sessionUsername = sess[0];           // username จากไฟล์ session.csv
+        }
+    } catch (Exception ignore) {}
+
+    if (sessionUsername != null) {
+        for (UserProfile u : all) {
+            if (sessionUsername.equalsIgnoreCase(u.username)) {
+                return u;
+            }
+        }
+    }
+    // เผื่อกรณีไม่มี session/หาไม่เจอ
+    return all.isEmpty() ? null : all.get(0);
+}
+
+// โหลดจากไฟล์ใส่ลงฟอร์ม
+private void loadProfileToForm() {
+    List<UserProfile> all = readAllUsers();
+    currentUserProfile = findCurrentUser(all);
+    if (currentUserProfile == null) return;
+
+    jTextField1.setText(currentUserProfile.fullname);     // Full Name
+    jTextField7.setText(currentUserProfile.house);        // Street / House No.
+    jTextField8.setText(currentUserProfile.subdistrict);  // Sub-area
+    jTextField9.setText(currentUserProfile.district);     // City
+    jTextField12.setText(currentUserProfile.province);    // Province
+    jTextField11.setText(currentUserProfile.zipcode);     // ZIP
+    jTextField13.setText(currentUserProfile.phone);       // Phone
+}
+
+// เก็บค่าที่แก้จากฟอร์มกลับเข้า currentUserProfile แล้วเขียนลงไฟล์
+private void saveProfileFromForm() {
+    if (currentUserProfile == null) return;
+
+    currentUserProfile.fullname    = nvl(jTextField1.getText());
+    currentUserProfile.house       = nvl(jTextField7.getText());
+    currentUserProfile.subdistrict = nvl(jTextField8.getText());
+    currentUserProfile.district    = nvl(jTextField9.getText());
+    currentUserProfile.province    = nvl(jTextField12.getText());
+    currentUserProfile.zipcode     = nvl(jTextField11.getText());
+    currentUserProfile.phone       = nvl(jTextField13.getText());
+
+    List<UserProfile> all = readAllUsers();
+    boolean replaced = false;
+    for (int i = 0; i < all.size(); i++) {
+        if (all.get(i).username.equalsIgnoreCase(currentUserProfile.username)) {
+            all.set(i, currentUserProfile);
+            replaced = true;
+            break;
+        }
+    }
+    if (!replaced) {
+        all.add(currentUserProfile); // ถ้าไม่เจอ แทรกใหม่ (กันข้อมูลหาย)
+    }
+    writeAllUsers(all);
+}
+
+private static String nvl(String s) { return s == null ? "" : s.trim(); }
     /**
      * Creates new form MainFrame
      */
@@ -338,12 +651,12 @@ private JPanel createProductCard(final Product p) {
         setupNewArea(); setupMenArea(); setupWomenArea(); setupDealArea();
         setupCartPage(); setupPurchasePage(); setupConfirmPage();
         showNew();           // แสดงหน้า New ครั้งแรก (ดึงจากไฟล์)
-        setLocationRelativeTo(null);           // จัดกึ่งกลาง (ก่อนจะ maximize ก็ได้)
+        setLocationRelativeTo(null);           // จัดกึ่งกลาง 
         setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);   // เปิดมาแบบเต็มหน้าจอ
         refreshCartListPanel();   // ให้หน้า Cart (ฝั่งซ้าย) ว่างแบบ layout พร้อมใช้งาน และสรุปยอดเป็น 0
 
     }
-    /** ===== CART: ให้สรุปออเดอร์อยู่ฝั่งขวา ===== */
+    /**CART: ให้สรุปออเดอร์อยู่ฝั่งขวา */
 private void setupCartPage() {
     Cart.removeAll();
     Cart.setLayout(new BorderLayout());
@@ -456,7 +769,7 @@ private void refreshCartListPanel() {
     minus.setFocusable(false);
     minus.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(180,180,180)));
     minus.setBackground(Color.WHITE);
-    minus.setToolTipText("ลบ 1 ชิ้น");
+    minus.setToolTipText("Remove 1 Pair");
     final String skuFinal = sku;
     minus.addActionListener(new java.awt.event.ActionListener() {
     @Override
@@ -501,7 +814,7 @@ private void updateOrderSummary() {
     jLabel58.setText(THB.format(Math.round(subtotal)));         // Grand total ตอนนี้ = subtotal
 }
 
-/** ===== PURCHASE: จัด Shipping Address ให้อยู่กลางจอ ===== */
+/**จัด Shipping Address ให้อยู่กลางจอ*/
 private void setupPurchasePage() {
     Purchase.removeAll();
     Purchase.setLayout(new BorderLayout());
@@ -579,7 +892,7 @@ private void setupConfirmPage() {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
-
+        jPanel12 = new javax.swing.JPanel();
         jLabel61 = new javax.swing.JLabel();
         motherpanel = new javax.swing.JPanel();
         MainNew8 = new javax.swing.JPanel();
@@ -588,10 +901,6 @@ private void setupConfirmPage() {
         NewShowProduct = new javax.swing.JPanel();
         Newshowproduct1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
-        jLabel5 = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
         jButton1 = new javax.swing.JButton();
         Newshowproduct2 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
@@ -762,7 +1071,6 @@ private void setupConfirmPage() {
         Purchase = new javax.swing.JPanel();
         jLabel59 = new javax.swing.JLabel();
         jPanel11 = new javax.swing.JPanel();
-        jPanel12 = new javax.swing.JPanel();
         jTextField12 = new javax.swing.JTextField();
         jTextField11 = new javax.swing.JTextField();
         jTextField9 = new javax.swing.JTextField();
@@ -829,196 +1137,6 @@ private void setupConfirmPage() {
                 jTextField4ActionPerformed(evt);
             }
         });
-
-        NewShowProduct.setBackground(new java.awt.Color(255, 255, 255));
-        java.awt.GridBagLayout NewShowProductLayout = new java.awt.GridBagLayout();
-        NewShowProductLayout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
-        NewShowProductLayout.rowHeights = new int[] {0, 12, 0};
-        NewShowProduct.setLayout(NewShowProductLayout);
-
-        Newshowproduct1.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        jPanel2.setBackground(new java.awt.Color(255, 255, 255));
-
-        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Home/forMen (1).png"))); // NOI18N
-
-        jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel2.setText("Adidas");
-
-        jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 9)); // NOI18N
-        jLabel3.setText("FECHTEN INDOOR CONSORTIUM");
-
-        jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
-        jLabel4.setText("฿ 4,500");
-
-        jButton1.setBackground(new java.awt.Color(0, 0, 0));
-        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton1.setForeground(new java.awt.Color(255, 255, 255));
-        jButton1.setText("Add to Cart");
-
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                    .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel2)
-                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton1)
-                .addGap(12, 12, 12))
-        );
-
-        javax.swing.GroupLayout Newshowproduct1Layout = new javax.swing.GroupLayout(Newshowproduct1);
-        Newshowproduct1.setLayout(Newshowproduct1Layout);
-        Newshowproduct1Layout.setHorizontalGroup(
-            Newshowproduct1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        Newshowproduct1Layout.setVerticalGroup(
-            Newshowproduct1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct1Layout.createSequentialGroup()
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct.add(Newshowproduct1, gridBagConstraints);
-
-        Newshowproduct2.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct2.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel6.setText("New Balance");
-
-        jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 9)); // NOI18N
-        jLabel7.setText("New Balance 740");
-
-        jLabel8.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
-        jLabel8.setText("฿ 4,300");
-
-        jButton2.setBackground(new java.awt.Color(0, 0, 0));
-        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton2.setForeground(new java.awt.Color(255, 255, 255));
-        jButton2.setText("Add to Cart");
-
-        jLabel1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Home/image.png"))); // NOI18N
-
-        javax.swing.GroupLayout Newshowproduct2Layout = new javax.swing.GroupLayout(Newshowproduct2);
-        Newshowproduct2.setLayout(Newshowproduct2Layout);
-        Newshowproduct2Layout.setHorizontalGroup(
-            Newshowproduct2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(Newshowproduct2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(Newshowproduct2Layout.createSequentialGroup()
-                        .addGroup(Newshowproduct2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel6)
-                            .addComponent(jLabel7)
-                            .addComponent(jLabel8))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        Newshowproduct2Layout.setVerticalGroup(
-            Newshowproduct2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel6)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton2)
-                .addContainerGap(12, Short.MAX_VALUE))
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct.add(Newshowproduct2, gridBagConstraints);
-
-        Newshowproduct3.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct3.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel9.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Home/httpsimages.stockx.comimagesNike.png"))); // NOI18N
-
-        jLabel10.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel10.setText("Nike");
-
-        jLabel11.setFont(new java.awt.Font("Segoe UI", 1, 9)); // NOI18N
-        jLabel11.setText("Air Force 1 Low Retro Premium ");
-
-        jLabel12.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
-        jLabel12.setText("฿ 5,400");
-
-        jButton3.setBackground(new java.awt.Color(0, 0, 0));
-        jButton3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton3.setForeground(new java.awt.Color(255, 255, 255));
-        jButton3.setText("Add to Cart");
-
-        javax.swing.GroupLayout Newshowproduct3Layout = new javax.swing.GroupLayout(Newshowproduct3);
-        Newshowproduct3.setLayout(Newshowproduct3Layout);
-        Newshowproduct3Layout.setHorizontalGroup(
-            Newshowproduct3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct3Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(Newshowproduct3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(Newshowproduct3Layout.createSequentialGroup()
-                        .addGroup(Newshowproduct3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel10)
-                            .addComponent(jLabel11)
-                            .addComponent(jLabel12))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        Newshowproduct3Layout.setVerticalGroup(
-            Newshowproduct3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct3Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel10)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton3)
-                .addContainerGap(12, Short.MAX_VALUE))
-        );
-
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 4;
         gridBagConstraints.gridy = 0;
@@ -3212,26 +3330,26 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         applyPromoFromField();   // ลองใช้โค้ด + อัปเดตยอด
 }//GEN-LAST:event_jTextField2ActionPerformed
 
+    // ปุ่ม Purchase
     private void jButton13ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton13ActionPerformed
         String code = jTextField2.getText().trim();
 
-    // ถ้ามีการกรอกโค้ด ให้ตรวจอีกครั้งก่อนอนุญาตไปต่อ
-    if (!code.isEmpty()) {
-        if (!pricing.applyPromoCode(code)) {
-            javax.swing.JOptionPane.showMessageDialog(this, "Invalid promo code!");
-            jTextField2.requestFocus();
-            jTextField2.selectAll();
-            return;  // <<< จุดสำคัญ: หยุดไม่ให้ไปต่อ
+            // ถ้าไม่กรอก หรือยังเป็น placeholder = ข้ามการตรวจ
+        if (!code.isBlank() && !PROMO_PLACEHOLDER.equals(code)) {
+            if (!pricing.applyPromoCode(code)) {
+                javax.swing.JOptionPane.showMessageDialog(this, "Invalid promo code!");
+                jTextField2.requestFocus();
+                jTextField2.selectAll();
+            return;
         }
-    } else {
     }
+    // ไปหน้าถัดไปตามปกติ
+    motherpanel.removeAll();
+    motherpanel.add(Purchase);
+    motherpanel.repaint();
+    motherpanel.revalidate();
 
-    // โค้ดถูก (หรือไม่ได้กรอก) = ไปขั้นถัดไปได้
-    // ... เปิดหน้า Shipping / ทำงานต่อ
-        motherpanel.removeAll();
-        motherpanel.add(Purchase);
-        motherpanel.repaint();
-        motherpanel.revalidate();
+    loadProfileToForm();
     }//GEN-LAST:event_jButton13ActionPerformed
 
     private void jButton14ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton14ActionPerformed
@@ -3241,12 +3359,32 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         motherpanel.revalidate();
     }//GEN-LAST:event_jButton14ActionPerformed
 
+    // ปุ่ม Confirm
     private void jButton16ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton16ActionPerformed
+        saveProfileFromForm(); 
+        reduceStockByCartAndClear();
+
         motherpanel.removeAll();
         motherpanel.add(Confirm);
         motherpanel.repaint();
         motherpanel.revalidate();
     }//GEN-LAST:event_jButton16ActionPerformed
+
+private static void installThaiFriendlyFont() {
+    String[] candidates = {"Segoe UI", "Tahoma", "Noto Sans Thai", "Sarabun"};
+    Set<String> installed = new HashSet<>(Arrays.asList(
+        GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()
+    ));
+    String pick = Arrays.stream(candidates).filter(installed::contains).findFirst().orElse("Dialog");
+
+    Font base = new Font(pick, Font.PLAIN, 16); 
+    UIManager.put("Label.font", base);
+    UIManager.put("TextField.font", base);
+    UIManager.put("Button.font", base);
+    UIManager.put("CheckBox.font", base);
+    UIManager.put("ComboBox.font", base);
+    UIManager.put("TextArea.font", base);
+}
 
     /**
      * @param args the command line arguments
@@ -3270,6 +3408,7 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         //</editor-fold>
 
         /* Create and display the form */
+        MainFrame.installThaiUIFont(16f);
       java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
                 public void run() {
