@@ -1397,7 +1397,7 @@ private void setupConfirmPage() {
         ProductNew.setBackground(new java.awt.Color(249, 249, 249));
         ProductNew.setPreferredSize(new java.awt.Dimension(708, 490));
         
-        NewShowProduct.setBackground(new java.awt.Color(198, 252, 255)); //พื้นหลังหน้าNew
+        NewShowProduct.setBackground(new java.awt.Color(234, 230, 223)); //พื้นหลังหน้าNew
         java.awt.GridBagLayout NewShowProductLayout = new java.awt.GridBagLayout();
         NewShowProductLayout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
         NewShowProductLayout.rowHeights = new int[] {0, 12, 0};
@@ -1598,7 +1598,7 @@ private void setupConfirmPage() {
         ProductMen.setBackground(new java.awt.Color(249, 249, 249));
         ProductMen.setPreferredSize(new java.awt.Dimension(708, 490));
 
-        NewShowProduct2.setBackground(new java.awt.Color(198, 252, 255)); //พื้นหลังหน้าMen
+        NewShowProduct2.setBackground(new java.awt.Color(234, 230, 223)); //พื้นหลังหน้าMen
         java.awt.GridBagLayout NewShowProduct2Layout = new java.awt.GridBagLayout();
         NewShowProduct2Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
         NewShowProduct2Layout.rowHeights = new int[] {0, 12, 0};
@@ -1832,7 +1832,7 @@ private void setupConfirmPage() {
         ProductWomen.setPreferredSize(new java.awt.Dimension(708, 490));
 
 
-        NewShowProduct3.setBackground(new java.awt.Color(198, 252, 255)); //พิ้นหลังหน้าWomen
+        NewShowProduct3.setBackground(new java.awt.Color(234, 230, 223)); //พิ้นหลังหน้าWomen
         java.awt.GridBagLayout NewShowProduct3Layout = new java.awt.GridBagLayout();
         NewShowProduct3Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
         NewShowProduct3Layout.rowHeights = new int[] {0, 12, 0};
@@ -2044,7 +2044,7 @@ private void setupConfirmPage() {
 
         ProductSD.setBackground(new java.awt.Color(249, 249, 249));
 
-        NewShowProduct4.setBackground(new java.awt.Color(198, 252, 255)); //พิ้นหลังหน้าSpecial
+        NewShowProduct4.setBackground(new java.awt.Color(234, 230, 223)); //พิ้นหลังหน้าSpecial
         java.awt.GridBagLayout NewShowProduct4Layout = new java.awt.GridBagLayout();
         NewShowProduct4Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
         NewShowProduct4Layout.rowHeights = new int[] {0, 12, 0};
