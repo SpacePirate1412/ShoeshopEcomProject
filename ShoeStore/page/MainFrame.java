@@ -5,6 +5,7 @@
 package page;
 import java.awt.*;
 import java.text.NumberFormat;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,17 +49,26 @@ public class MainFrame extends javax.swing.JFrame {
         //  Shopping cart 
         private final PricingService pricing = new PricingService();
         private final ShoppingCart cart = new ShoppingCart(pricing, catalog);
-        private static final double SHIPPING_FEE = 50.0; // ค่าจัดส่ง
+        private static final double SHIPPING_FEE = 50.0;//ค่าจัดส่ง
+
         // ป้ายจำนวนบนการ์ดสินค้า (key = SKU)
         private final Map<String, javax.swing.JLabel> skuToQtyLabel = new HashMap<>();
         // จดจำไซส์ต่อ SKU ที่ลูกค้าเลือก
         private final Map<String, String> skuToSize = new HashMap<>();
+        /** ดึง snapshot ของ map SKU→Size ปัจจุบัน */
+        private Map<String, String> getSkuToSizeSnapshot() {
+        return new HashMap<>(skuToSize);
+        }
+
+
+
         // หา combobox ไซส์ของหน้าปัจจุบัน จากปุ่มที่กด
         private javax.swing.JComboBox<String> resolveSizeCombo(java.awt.Component source) {
             if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct))  return sizeComboBox;
             if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct2)) return sizeComboBoxMen;
             if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct3)) return sizeComboBoxWomen;
             if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct4)) return sizeComboBoxSD;
+            if (javax.swing.SwingUtilities.isDescendingFrom(source, motherpanel)) return sizeComboBox;
             return null;
         }
         private static final Path STOCK_CSV = Paths.get("stock.csv"); // path หาไฟล์ stock.csv
@@ -219,7 +229,7 @@ private void populateGrid(JPanel grid, List<Product> items) {
         }
     }
 
-    // ✅ ดันให้เต็มด้านล่าง (ไม่ให้การ์ดลอย)
+    // ดันให้เต็มด้านล่าง (ไม่ให้การ์ดลอย)
     gc.weighty = 1;
     gc.gridy = row + 1;
     grid.add(Box.createVerticalGlue(), gc);
@@ -410,12 +420,12 @@ private JPanel createProductCard(final Product p) {
         pricePanel.add(now);
     }
 
-   //ปุ่ม Add
-JButton add = new JButton("Add to Cart");
-add.setBackground(Color.BLACK);
-add.setForeground(Color.WHITE);
-add.setFocusPainted(false);
-add.setAlignmentX(Component.LEFT_ALIGNMENT);
+    //ปุ่ม Add
+    JButton add = new JButton("Add to Cart");
+    add.setBackground(Color.BLACK);
+    add.setForeground(Color.WHITE);
+    add.setFocusPainted(false);
+    add.setAlignmentX(Component.LEFT_ALIGNMENT);
 
 
     // ให้ปุ่มกว้าง “เต็มการ์ด”
@@ -449,7 +459,7 @@ add.addActionListener(new ActionListener() {
             // เพิ่มลงตะกร้า + จดไซส์
             cart.addItem(p.getSku(), 1);
             skuToSize.put(p.getSku(), chosenSize);
-
+            updatePurchaseButton();
             int q = getQtyInCart(p.getSku());
             JLabel lbl = skuToQtyLabel.get(p.getSku());
             if (lbl != null) {
@@ -701,6 +711,7 @@ private void reduceStockByCartAndClear() {
     skuToSize.clear();
     refreshCartListPanel();
     updateOrderSummary();
+    updatePurchaseButton();
 }
 
 private void writeAllUsers(List<UserProfile> users) {
@@ -795,6 +806,16 @@ private void saveProfileFromForm() {
     writeAllUsers(all);
 }
 
+// เมธอดอัปเดตสถานะปุ่ม Purchase อัตโนมัติ
+private void updatePurchaseButton() {
+    if (cart.getItemCount() == 0) {
+        jButton13.setEnabled(false);
+        jButton13.setToolTipText("กรุณาเพิ่มสินค้าในตะกร้าก่อนทำการสั่งซื้อ");
+    } else {
+        jButton13.setEnabled(true);
+        jButton13.setToolTipText(null);
+    }
+}
 
 // ระบบค้นหาสินค้าตามชื่อหรือแบรนด์
 private void applySearch(String keyword) {
@@ -803,7 +824,7 @@ private void applySearch(String keyword) {
         return;
     }
 
-    // 🔹 ลบช่องว่างทั้งหมดและเปลี่ยนเป็นตัวพิมพ์เล็ก
+    // ลบช่องว่างทั้งหมดและเปลี่ยนเป็นตัวพิมพ์เล็ก
     final String searchKeyword = keyword.toLowerCase().trim().replaceAll("\\s+", "");
     if (searchKeyword.isEmpty()) {
         JOptionPane.showMessageDialog(this, "กรุณากรอกคำที่ต้องการค้นหา");
@@ -813,7 +834,7 @@ private void applySearch(String keyword) {
     catalog.reload();
     List<Product> allProducts = catalog.getAllProducts();
 
-    // 🔹 รวม brand + name แล้วลบช่องว่างเพื่อค้นหา flexible เช่น "nikelowstar"
+    // รวม brand + name แล้วลบช่องว่างเพื่อค้นหา 
     List<Product> results = allProducts.stream()
             .filter(p -> {
                 String brandNameCombo = (p.getBrand() + p.getName())
@@ -823,14 +844,38 @@ private void applySearch(String keyword) {
             })
             .collect(Collectors.toList());
 
-    // ✅ สร้างหน้า SearchResult ใหม่เสมอ
-    JPanel SearchResult = new JPanel(new BorderLayout());
-    SearchResult.setBackground(Color.WHITE);
+//  สร้างหน้า SearchResult
+JPanel SearchResult = new JPanel(new BorderLayout());
+SearchResult.setBackground(Color.WHITE);
 
-    JLabel title = new JLabel("ผลลัพธ์การค้นหา: " + keyword, SwingConstants.CENTER);
-    title.setFont(new Font("Tahoma", Font.BOLD, 26));
-    title.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
-    SearchResult.add(title, BorderLayout.NORTH);
+// ===== แถบด้านบน (ผลลัพธ์ + ช่องเลือกไซส์) =====
+JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
+topPanel.setBackground(Color.WHITE);
+
+// ป้ายข้อความผลลัพธ์
+JLabel title = new JLabel("ผลลัพธ์การค้นหา: " + keyword);
+title.setFont(new Font("Tahoma", Font.BOLD, 26));
+
+// ช่องเลือกไซส์
+sizeComboBox = new javax.swing.JComboBox<>(new String[]{
+    "กรุณาเลือกขนาดรองเท้า", "36", "37", "38", "39", "40",
+    "41", "42", "43", "44", "45"
+});
+sizeComboBox.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 13));
+sizeComboBox.setSelectedIndex(0);
+
+JLabel sizeLabel = new JLabel("ขนาดรองเท้า:");
+sizeLabel.setFont(new Font("Tahoma", Font.BOLD, 14));
+
+// เพิ่มทั้งหมดในแถบด้านบน
+topPanel.add(title);
+topPanel.add(Box.createHorizontalStrut(30)); // เว้นช่องว่าง
+topPanel.add(sizeLabel);
+topPanel.add(sizeComboBox);
+
+// เพิ่มแถบด้านบนเข้าไปใน SearchResult
+SearchResult.add(topPanel, BorderLayout.NORTH);
+
 
     JPanel productPanel = new JPanel();
     productPanel.setBackground(Color.WHITE);
@@ -1017,6 +1062,7 @@ private void refreshCartListPanel() {
     @Override
     public void actionPerformed(java.awt.event.ActionEvent e) {
         removeOneFromCart(skuFinal);
+        updatePurchaseButton();
     }
 });
 
@@ -1044,13 +1090,14 @@ private void refreshCartListPanel() {
     updateOrderSummary();
 }
 
-/** คำนวณยอดรวมแล้วอัปเดตป้ายในกล่อง Order Summary  */
+/** คำนวณยอดรวมแล้วอัปเดตป้ายในกล่อง Order Summary */
 private void updateOrderSummary() {
     double subtotal = 0.0;
     for (CartItem it : cart.getItems()) {
         double unit = it.getProduct().getPriceAfterBuiltInDiscount();
         subtotal += unit * it.getQuantity();
     }
+
     // ยอดหลังหักโปรโมโค้ด (ถ้ามี) ที่ PricingService คิดไว้ในตะกร้า
     double totalAfterPromo = cart.getTotalPrice();
 
@@ -1327,6 +1374,7 @@ private void setupConfirmPage() {
         newBsearch11 = new javax.swing.JButton();
         NewBlogout = new javax.swing.JButton();
         NewBcart11 = new javax.swing.JButton();
+        NewBorder11 = new javax.swing.JButton();
         sizeComboBox = new javax.swing.JComboBox<>();
         sizeComboBoxMen = new javax.swing.JComboBox<>();
         sizeComboBoxWomen = new javax.swing.JComboBox<>();
@@ -1511,7 +1559,7 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox60)
                 .addComponent(NewB12)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(sizeComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE) // ✅ เพิ่มตรงนี้
+                .addComponent(sizeComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE) // เพิ่มตรงนี้
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 
@@ -2362,9 +2410,15 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         jButton13.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
         jButton13.setForeground(new java.awt.Color(255, 255, 255));
         jButton13.setText("Purchase");
+        // 🔒 ปิดปุ่ม Purchase ถ้ายังไม่มีสินค้าในตะกร้า
+        if (cart.getItemCount() == 0) {
+            jButton13.setEnabled(false);
+        }
+
         jButton13.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton13ActionPerformed(evt);
+            
             }
         });
 
@@ -2509,6 +2563,7 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         jButton16.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton16ActionPerformed(evt);
+                updatePurchaseButton();
             }
         });
 
@@ -2764,6 +2819,19 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
                 NewBcart11NewBcartCartB1ActionPerformed(evt);
             }
         });
+        NewBorder11 = new javax.swing.JButton();
+        NewBorder11.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Picture/order.png")));
+        NewBorder11.setBorder(null);
+        NewBorder11.setContentAreaFilled(false);
+        NewBorder11.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        NewBorder11.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                motherpanel.removeAll();
+                motherpanel.add(new OrderPage());
+                motherpanel.revalidate();
+                motherpanel.repaint();
+            }
+        });
         NewBlogout.setBackground(new java.awt.Color(204, 204, 204));
         NewBlogout.setFont(new java.awt.Font("Segoe UI", 1, 14)); 
         NewBlogout.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Picture/logout.png")));
@@ -2787,9 +2855,11 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
                 "Error",
                 javax.swing.JOptionPane.ERROR_MESSAGE
             );
+         }   
+
         }
-    }
-});
+    
+        });
         javax.swing.GroupLayout MenuNew11Layout = new javax.swing.GroupLayout(MenuNew11);
         MenuNew11.setLayout(MenuNew11Layout);
         MenuNew11Layout.setHorizontalGroup(
@@ -2814,6 +2884,8 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         .addGap(24, 24, 24)
         .addComponent(NewBcart11)
         .addGap(18, 18, 18)
+        .addComponent(NewBorder11)
+        .addGap(18, 18, 18)
         .addComponent(NewBlogout)  // <-- Log out ต่อท้าย Cart
         .addGap(20, 20, 20))
 );
@@ -2830,6 +2902,7 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
             .addComponent(Newsearch11, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addComponent(newBsearch11, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addComponent(NewBcart11)
+            .addComponent(NewBorder11)
             .addComponent(NewBlogout)    // อยู่ในแถวเดียวกัน
             .addComponent(Title17))
         .addContainerGap(14, Short.MAX_VALUE))
@@ -3077,20 +3150,43 @@ private void applyFilterDeal() {
     }//GEN-LAST:event_jButton14ActionPerformed
 
     // ปุ่ม Confirm
-    private void jButton16ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton16ActionPerformed
-        // เก็บค่าสแน็ปช็อตก่อนล้าง
-        List<CartItem> snapshot = new ArrayList<>(cart.getItems());
-        Map<String,String> sizeSnap = new HashMap<>(skuToSize);
-        double grand = cart.getTotalPrice();  // ราคาหลังส่วนลด/โปรโมโค้ดแล้ว
-        saveProfileFromForm(); 
-        reduceStockByCartAndClear();  // จะเคลียร์ cart + ไซส์ + อัปเดต stock.csv ลดจำนวนสินค้า
-        motherpanel.removeAll();
-        motherpanel.add(Confirm);
-        motherpanel.repaint();
-        motherpanel.revalidate();
-        fillConfirmSummary(snapshot, sizeSnap, grand);
-        forceThai(Confirm);   // ใช้ฟอนต์ไทย
-    }//GEN-LAST:event_jButton16ActionPerformed
+    // ปุ่ม Confirm
+
+private void jButton16ActionPerformed(java.awt.event.ActionEvent evt) {
+    List<CartItem> snapshot = new ArrayList<>(cart.getItems());
+    Map<String, String> sizeSnap = getSkuToSizeSnapshot();  // ดึงไซส์ตอนนี้ทันที
+    double grand = cart.getTotalPrice();
+
+    saveProfileFromForm(); 
+
+    // 3. สร้างออเดอร์
+    String username = "Guest";
+    String[] session = Session.loadSession();
+    if (session != null && session.length > 0) {
+        username = session[0];
+    }
+
+    Order currentOrder = new Order(username, java.time.LocalDateTime.now(), snapshot, grand, "กำลังจัดส่ง");
+
+    // 4. บันทึกออเดอร์ + ไซส์ ลงไฟล์ก่อน clear cart
+    Collectorder.saveOrder(currentOrder, sizeSnap);
+
+    // 5. ค่อยล้างสต็อก + ตะกร้า หลังจากบันทึกเรียบร้อยแล้ว
+    reduceStockByCartAndClear();
+
+    // 6. ไปหน้า Confirm ตามปกติ
+    motherpanel.removeAll();
+    motherpanel.add(Confirm);
+    motherpanel.repaint();
+    motherpanel.revalidate();
+
+    fillConfirmSummary(snapshot, sizeSnap, grand);
+    forceThai(Confirm);
+}
+
+
+
+//GEN-LAST:event_jButton16ActionPerformed
 
 private static void installThaiFriendlyFont() {
     String[] candidates = {"Segoe UI", "Tahoma", "Noto Sans Thai", "Sarabun"};
@@ -3172,6 +3268,7 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JButton NewBlogout;
     private javax.swing.JButton NewBmen11;
     private javax.swing.JButton NewBnew11;
+    private javax.swing.JButton NewBorder11;
     private javax.swing.JButton NewBsp11;
     private javax.swing.JButton NewBwomen11;
     private javax.swing.JPanel NewShowProduct;

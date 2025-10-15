@@ -56,4 +56,21 @@ public class Session {
             file.delete(); // ลบไฟล์ทิ้ง
         }
     }
+    // ดึง username ของผู้ใช้ปัจจุบันจากไฟล์ session.csv
+public static String getUsername() {
+    String[] session = loadSession();
+    if (session != null && session.length >= 1) {
+        return session[0]; // index 0 = username
+    }
+    return "Unknown";
+}
+
+// ดึง role ถ้าจำเป็นต้องใช้ (เช่น admin / user)
+public static String getRole() {
+    String[] session = loadSession();
+    if (session != null && session.length >= 2) {
+        return session[1]; // index 1 = role
+    }
+    return "User";
+}
 }
