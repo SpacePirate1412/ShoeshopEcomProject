@@ -63,7 +63,7 @@ public class ProductCatalog {
         File file = f1.exists() ? f1 : (f2.exists() ? f2 : (f3.exists() ? f3 : f1));
         if (file == null || !file.exists()) {
     System.err.println("stock.csv not found. Tried: " + f1.getPath() + ", " + f2.getPath() + ", " + f3.getPath());
-    return; // หรือโยน exception ตามสะดวก
+    return; 
 }
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
@@ -105,8 +105,8 @@ public class ProductCatalog {
         }
     }
 
-    // ===== แปลง CSV → Product (พยายามเรียก setter ที่มี โดยยึด setSku เป็นหลัก) =====
-    // สร้าง Product ด้วย ctor 7 พารามิเตอร์ (ตรงกับคลาสของคุณ)
+    //  แปลง CSV เป็น Product 
+    // สร้าง Product ด้วย ctor 7 พารามิเตอร์ 
 private Product makeProduct(String sku, String name, String brand,
                             double price, String gender, double discount, int quantity) {
     return new Product(sku, name, brand, price, gender, discount, quantity);
