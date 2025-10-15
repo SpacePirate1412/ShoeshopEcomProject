@@ -1278,7 +1278,6 @@ private void setupConfirmPage() {
         NewB7 = new javax.swing.JButton();
         jCheckBox21 = new javax.swing.JCheckBox();
         jCheckBox22 = new javax.swing.JCheckBox();
-        jCheckBox23 = new javax.swing.JCheckBox();
         jCheckBox24 = new javax.swing.JCheckBox();
         jCheckBox25 = new javax.swing.JCheckBox();
         NewB8 = new javax.swing.JButton();
@@ -1296,7 +1295,6 @@ private void setupConfirmPage() {
         NewB15 = new javax.swing.JButton();
         jCheckBox61 = new javax.swing.JCheckBox();
         jCheckBox62 = new javax.swing.JCheckBox();
-        jCheckBox63 = new javax.swing.JCheckBox();
         jCheckBox64 = new javax.swing.JCheckBox();
         jCheckBox65 = new javax.swing.JCheckBox();
         NewB16 = new javax.swing.JButton();
@@ -1314,7 +1312,6 @@ private void setupConfirmPage() {
         NewB19 = new javax.swing.JButton();
         jCheckBox81 = new javax.swing.JCheckBox();
         jCheckBox82 = new javax.swing.JCheckBox();
-        jCheckBox83 = new javax.swing.JCheckBox();
         jCheckBox84 = new javax.swing.JCheckBox();
         jCheckBox85 = new javax.swing.JCheckBox();
         NewB20 = new javax.swing.JButton();
@@ -1690,9 +1687,6 @@ private void setupConfirmPage() {
         jCheckBox22.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox22.setText("Converse");
 
-        jCheckBox23.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox23.setText("New Balance");
-
         jCheckBox24.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox24.setText("Nike");
 
@@ -1757,7 +1751,6 @@ private void setupConfirmPage() {
                     .addComponent(NewB7)
                     .addComponent(jCheckBox21)
                     .addComponent(jCheckBox22)
-                    .addComponent(jCheckBox23)
                     .addComponent(jCheckBox24)
                     .addComponent(jCheckBox25)
                     .addComponent(NewB8)
@@ -1781,8 +1774,6 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox21)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox22)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jCheckBox23)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox24)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -1912,9 +1903,6 @@ private void setupConfirmPage() {
         jCheckBox62.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox62.setText("Converse");
 
-        jCheckBox63.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox63.setText("New Balance");
-
         jCheckBox64.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox64.setText("Nike");
 
@@ -1978,7 +1966,6 @@ private void setupConfirmPage() {
                     .addComponent(NewB15)
                     .addComponent(jCheckBox61)
                     .addComponent(jCheckBox62)
-                    .addComponent(jCheckBox63)
                     .addComponent(jCheckBox64)
                     .addComponent(jCheckBox65)
                     .addComponent(NewB16)
@@ -2002,8 +1989,6 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox61)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox62)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jCheckBox63)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox64)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -2130,9 +2115,6 @@ private void setupConfirmPage() {
         jCheckBox82.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox82.setText("Converse");
 
-        jCheckBox83.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox83.setText("New Balance");
-
         jCheckBox84.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox84.setText("Nike");
 
@@ -2195,7 +2177,6 @@ private void setupConfirmPage() {
                     .addComponent(NewB19)
                     .addComponent(jCheckBox81)
                     .addComponent(jCheckBox82)
-                    .addComponent(jCheckBox83)
                     .addComponent(jCheckBox84)
                     .addComponent(jCheckBox85)
                     .addComponent(NewB20)
@@ -2219,8 +2200,6 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox81)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox82)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jCheckBox83)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox84)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -3294,7 +3273,6 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox100;
     private javax.swing.JCheckBox jCheckBox21;
     private javax.swing.JCheckBox jCheckBox22;
-    private javax.swing.JCheckBox jCheckBox23;
     private javax.swing.JCheckBox jCheckBox24;
     private javax.swing.JCheckBox jCheckBox25;
     private javax.swing.JCheckBox jCheckBox36;
@@ -3313,7 +3291,6 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox60;
     private javax.swing.JCheckBox jCheckBox61;
     private javax.swing.JCheckBox jCheckBox62;
-    private javax.swing.JCheckBox jCheckBox63;
     private javax.swing.JCheckBox jCheckBox64;
     private javax.swing.JCheckBox jCheckBox65;
     private javax.swing.JCheckBox jCheckBox76;
@@ -3323,7 +3300,6 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox80;
     private javax.swing.JCheckBox jCheckBox81;
     private javax.swing.JCheckBox jCheckBox82;
-    private javax.swing.JCheckBox jCheckBox83;
     private javax.swing.JCheckBox jCheckBox84;
     private javax.swing.JCheckBox jCheckBox85;
     private javax.swing.JCheckBox jCheckBox96;
