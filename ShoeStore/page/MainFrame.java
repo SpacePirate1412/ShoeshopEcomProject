@@ -48,6 +48,7 @@ public class MainFrame extends javax.swing.JFrame {
         //  Shopping cart 
         private final PricingService pricing = new PricingService();
         private final ShoppingCart cart = new ShoppingCart(pricing, catalog);
+        private static final double SHIPPING_FEE = 50.0; // ค่าจัดส่ง
         // ป้ายจำนวนบนการ์ดสินค้า (key = SKU)
         private final Map<String, javax.swing.JLabel> skuToQtyLabel = new HashMap<>();
         // จดจำไซส์ต่อ SKU ที่ลูกค้าเลือก
@@ -174,6 +175,7 @@ public class MainFrame extends javax.swing.JFrame {
 
 
 private void updateCartSummary() {
+    updateOrderSummary();
     double total = cart.getTotalPrice();                 // จะคิดส่วนลด/โปรโมโค้ดให้เอง
     jLabel58.setText(THB.format(Math.round(total)));  // Grand Total
     // ถ้าจะโชว์ subtotal/discount แยก ค่อยคำนวณเพิ่มทีหลังได้
@@ -1042,17 +1044,31 @@ private void refreshCartListPanel() {
     updateOrderSummary();
 }
 
-/** คำนวณยอดรวมแล้วอัปเดตป้ายในกล่อง Order Summary (jLabel55..58) */
+/** คำนวณยอดรวมแล้วอัปเดตป้ายในกล่อง Order Summary  */
 private void updateOrderSummary() {
     double subtotal = 0.0;
     for (CartItem it : cart.getItems()) {
-        subtotal += it.getProduct().getPriceAfterBuiltInDiscount() * it.getQuantity();
+        double unit = it.getProduct().getPriceAfterBuiltInDiscount();
+        subtotal += unit * it.getQuantity();
     }
-    jLabel55.setText("+ " + THB.format(Math.round(subtotal))); // Subtotal
-    jLabel56.setText("+ 0.00");                                 // Shipping (ปรับได้ภายหลัง)
-    jLabel57.setText("- 0.00");                                 // Discount (คูปอง/โปรเพิ่มได้ภายหลัง)
-    jLabel58.setText(THB.format(Math.round(subtotal)));         // Grand total ตอนนี้ = subtotal
+    // ยอดหลังหักโปรโมโค้ด (ถ้ามี) ที่ PricingService คิดไว้ในตะกร้า
+    double totalAfterPromo = cart.getTotalPrice();
+
+    // ส่วนลดจากโปรโมโค้ด = ก่อนลด - หลังลด (ไม่ติดลบ)
+    double promoDiscount = subtotal - totalAfterPromo;
+    if (promoDiscount < 0.0) {
+        promoDiscount = 0.0;
+    }
+
+    double shipping = SHIPPING_FEE;
+    double grand = totalAfterPromo + shipping;
+
+    jLabel55.setText("+ " + THB.format(Math.round(subtotal)));      // Subtotal
+    jLabel56.setText("+ " + THB.format(Math.round(shipping)));      // Shipping Fee = 50
+    jLabel57.setText("- " + THB.format(Math.round(promoDiscount))); // Discount จากโค้ด
+    jLabel58.setText(THB.format(Math.round(grand)));                // Grand Total
 }
+
 
 /**จัด Shipping Address ให้อยู่กลางจอ*/
 private void setupPurchasePage() {
