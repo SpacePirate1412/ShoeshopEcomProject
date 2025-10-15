@@ -6,7 +6,6 @@ public class CartItem {
     private final Product product;
     private int quantity;
   
-  
   private void checkRep() {
         if (product == null) {
             throw new RuntimeException("RI violated: product cannot be null.");
@@ -43,5 +42,3 @@ public class CartItem {
         checkRep();
     }
 }
-
-

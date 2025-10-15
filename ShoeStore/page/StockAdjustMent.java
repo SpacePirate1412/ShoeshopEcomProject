@@ -18,6 +18,14 @@ public class StockAdjustMent extends javax.swing.JFrame {
 
     // ===== NEW: ผูกกับแคตตาล็อกสินค้า =====
     private final ProductCatalog catalog;
+    // --- Promo code CSV ---
+    private static final java.nio.file.Path PROMO_CSV =
+        java.nio.file.Paths.get("lib", "discount", "promocodes.csv");
+        private javax.swing.JTextField tfPromoCode;
+        private javax.swing.JTextField tfPromoPercent;
+        private javax.swing.JButton btnPromoAdd;
+        private javax.swing.JButton btnPromoClear;
+
 
     // สร้างด้วยแคตตาล็อกใหม่ (อ่านจาก stock.csv อัตโนมัติ)
     public StockAdjustMent() {
@@ -26,10 +34,15 @@ public class StockAdjustMent extends javax.swing.JFrame {
 
     // รับ catalog จากภายนอก (เผื่อหน้าอื่นส่งมา)
     public StockAdjustMent(ProductCatalog catalog) {
-        this.catalog = (catalog != null) ? catalog : new ProductCatalog();
-        initComponents();
-        
-    }
+    this.catalog = (catalog != null) ? catalog : new ProductCatalog();
+    initComponents();
+
+    // เปิดมาแบบเต็มจอ เหมือนหน้าร้าน
+    setLocationRelativeTo(null);
+    setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
+    setResizable(true);
+}
+
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -153,76 +166,134 @@ public class StockAdjustMent extends javax.swing.JFrame {
                 btnClearActionPerformed(evt);
             }
         });
+        // ====== เพิ่มชุดคอมโพเนนต์สำหรับ Promo code ======
+javax.swing.JLabel lblPromoTitle = new javax.swing.JLabel();
+lblPromoTitle.setFont(new java.awt.Font("Cambria", 1, 14));
+lblPromoTitle.setText("Promo code");
 
-        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
-        jPanel2.setLayout(jPanel2Layout);
-        jPanel2Layout.setHorizontalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(tfBrand, javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(tfSku)
-                    .addComponent(tfName)
-                    .addComponent(tfPrice)
-                    .addComponent(cbGender, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(tfDiscount, javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel2)
-                            .addComponent(jLabel3)
-                            .addComponent(jLabel4)
-                            .addComponent(jLabel5)
-                            .addComponent(jLabel6)
-                            .addComponent(jLabel7)
-                            .addComponent(jLabel8))
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addComponent(tfQuantity, javax.swing.GroupLayout.Alignment.TRAILING))
-                .addContainerGap())
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGap(12, 12, 12)
-                .addComponent(btnAdd, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(btnClear, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(17, Short.MAX_VALUE))
-        );
-        jPanel2Layout.setVerticalGroup(
-            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel2Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(tfSku)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel3)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(tfName)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel4)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+javax.swing.JLabel lblCode = new javax.swing.JLabel();
+lblCode.setText("Code");
+
+tfPromoCode = new javax.swing.JTextField();
+
+javax.swing.JLabel lblPercent = new javax.swing.JLabel();
+lblPercent.setText("Percent (%)");
+
+tfPromoPercent = new javax.swing.JTextField();
+
+btnPromoAdd = new javax.swing.JButton();
+btnPromoAdd.setText("Add Promo");
+btnPromoAdd.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+        btnPromoAddActionPerformed(evt);
+    }
+});
+
+btnPromoClear = new javax.swing.JButton();
+btnPromoClear.setText("Clear");
+btnPromoClear.addActionListener(new java.awt.event.ActionListener() {
+    public void actionPerformed(java.awt.event.ActionEvent evt) {
+        tfPromoCode.setText("");
+        tfPromoPercent.setText("");
+    }
+});
+
+// ====== Layout ใหม่ของ jPanel2: เพิ่มกลุ่ม Promo code ไว้ล่างสุด ======
+javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+jPanel2.setLayout(jPanel2Layout);
+jPanel2Layout.setHorizontalGroup(
+    jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        .addGroup(jPanel2Layout.createSequentialGroup()
+            .addContainerGap()
+            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addComponent(tfBrand)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel5)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tfSku)
+                .addComponent(tfName)
                 .addComponent(tfPrice)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel6)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(cbGender)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel7)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(cbGender, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(tfDiscount)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel8)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tfQuantity)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnAdd, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btnClear, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(11, Short.MAX_VALUE))
-        );
+                .addGroup(jPanel2Layout.createSequentialGroup()
+                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jLabel2)
+                        .addComponent(jLabel3)
+                        .addComponent(jLabel4)
+                        .addComponent(jLabel5)
+                        .addComponent(jLabel6)
+                        .addComponent(jLabel7)
+                        .addComponent(jLabel8))
+                    .addGap(0, 0, Short.MAX_VALUE))
+                .addGroup(jPanel2Layout.createSequentialGroup()
+                    .addComponent(btnAdd, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(18, 18, 18)
+                    .addComponent(btnClear, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE))
+                // ----- Promo code block -----
+                .addComponent(lblPromoTitle)
+                .addComponent(lblCode)
+                .addComponent(tfPromoCode)
+                .addComponent(lblPercent)
+                .addComponent(tfPromoPercent)
+                .addGroup(jPanel2Layout.createSequentialGroup()
+                    .addComponent(btnPromoAdd, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(18, 18, 18)
+                    .addComponent(btnPromoClear, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGap(0, 0, Short.MAX_VALUE))
+            )
+            .addContainerGap())
+);
+jPanel2Layout.setVerticalGroup(
+    jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        .addGroup(jPanel2Layout.createSequentialGroup()
+            .addContainerGap()
+            .addComponent(jLabel2)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfSku, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(jLabel3)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(jLabel4)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfBrand, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(jLabel5)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfPrice, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(jLabel6)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(cbGender, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(jLabel7)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfDiscount, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(jLabel8)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfQuantity, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addComponent(btnAdd)
+                .addComponent(btnClear))
+            .addGap(12, 12, 12)
+            // ----- Promo code block -----
+            .addComponent(lblPromoTitle)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(lblCode)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfPromoCode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(lblPercent)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addComponent(tfPromoPercent, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addComponent(btnPromoAdd)
+                .addComponent(btnPromoClear))
+            .addContainerGap(11, Short.MAX_VALUE))
+);
 
         tableStock.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -412,6 +483,90 @@ public class StockAdjustMent extends javax.swing.JFrame {
             try { saveAndReload(); } catch (Exception ex) { ex.printStackTrace(); }
         }
     }//GEN-LAST:event_btnDeleteActionPerformed
+//promocode
+    private void btnPromoAddActionPerformed(java.awt.event.ActionEvent evt) {
+    String code = (tfPromoCode.getText() == null) ? "" : tfPromoCode.getText().trim();
+    String pct  = (tfPromoPercent.getText() == null) ? "" : tfPromoPercent.getText().trim();
+
+    if (code.isEmpty() || pct.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Please enter promo code and percent.");
+        return;
+    }
+    if (!isDouble(pct)) {
+        JOptionPane.showMessageDialog(this, "Percent must be number.");
+        tfPromoPercent.requestFocus();
+        return;
+    }
+    double percent = Double.parseDouble(pct);
+    if (percent <= 0 || percent > 100) {
+        JOptionPane.showMessageDialog(this, "Percent must be 0-100.");
+        tfPromoPercent.requestFocus();
+        return;
+    }
+    try {
+        upsertPromoCodeToCsv(code.toUpperCase(java.util.Locale.ROOT), percent);
+        JOptionPane.showMessageDialog(this, "Saved promo code.");
+        tfPromoCode.setText("");
+        tfPromoPercent.setText("");
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Save promo failed: " + ex.getMessage());
+    }
+}
+
+private static void ensurePromoCsvExists() throws java.io.IOException {
+    java.nio.file.Files.createDirectories(PROMO_CSV.getParent());
+    if (!java.nio.file.Files.exists(PROMO_CSV)) {
+        try (java.io.BufferedWriter w = java.nio.file.Files.newBufferedWriter(
+                PROMO_CSV, java.nio.charset.StandardCharsets.UTF_8,
+                java.nio.file.StandardOpenOption.CREATE)) {
+            w.write('\uFEFF');                 // BOM เพื่อกันภาษาไทยเพี้ยน
+            w.write("code,percent");
+            w.newLine();
+        }
+    }
+}
+
+private void upsertPromoCodeToCsv(String code, double percent) throws java.io.IOException {
+    ensurePromoCsvExists();
+    java.util.List<String> lines = java.nio.file.Files.readAllLines(
+            PROMO_CSV, java.nio.charset.StandardCharsets.UTF_8);
+
+    if (!lines.isEmpty()) {
+        String h = lines.get(0).replace("\uFEFF","").trim().toLowerCase();
+        if (!h.startsWith("code")) {
+            lines.add(0, "code,percent");
+        }
+    } else {
+        lines.add("code,percent");
+    }
+
+    boolean updated = false;
+    for (int i = 1; i < lines.size(); i++) {
+        String ln = lines.get(i).trim();
+        if (ln.isEmpty()) continue;
+        String[] cols = parseCSVLine(ln);
+        if (cols.length > 0 && cols[0].trim().equalsIgnoreCase(code)) {
+            lines.set(i, code + "," + percent);
+            updated = true;
+            break;
+        }
+    }
+    if (!updated) {
+        lines.add(code + "," + percent);
+    }
+
+    try (java.io.BufferedWriter w = java.nio.file.Files.newBufferedWriter(
+            PROMO_CSV, java.nio.charset.StandardCharsets.UTF_8,
+            java.nio.file.StandardOpenOption.CREATE,
+            java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+        w.write('\uFEFF'); // BOM
+        for (String ln : lines) {
+            w.write(ln);
+            w.newLine();
+        }
+    }
+}
 
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(() -> new StockAdjustMent().setVisible(true));

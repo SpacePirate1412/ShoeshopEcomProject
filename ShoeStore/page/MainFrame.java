@@ -16,10 +16,14 @@ import java.nio.file.*;
 import java.nio.charset.StandardCharsets;
 import java.io.*;
 import java.util.stream.*;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
@@ -40,11 +44,22 @@ public class MainFrame extends javax.swing.JFrame {
         private final JPanel womenGrid = new JPanel(new GridBagLayout());    // กริดของหน้า Women
         private final JPanel dealGrid  = new JPanel(new GridBagLayout());    // กริดของหน้า Special Deal
         private final NumberFormat THB = NumberFormat.getNumberInstance(new Locale("th","TH")); //สร้างตัวจัดรูปแบบตัวเลขสำหรับ รูปแบบราคาตัวเลขแบบของไทยแล้วเก็บไว้ในตัวแปร THB
+        private final ProductFilterManager filterManager = new ProductFilterManager(catalog);
         //  Shopping cart 
         private final PricingService pricing = new PricingService();
         private final ShoppingCart cart = new ShoppingCart(pricing, catalog);
         // ป้ายจำนวนบนการ์ดสินค้า (key = SKU)
         private final Map<String, javax.swing.JLabel> skuToQtyLabel = new HashMap<>();
+        // จดจำไซส์ต่อ SKU ที่ลูกค้าเลือก
+        private final Map<String, String> skuToSize = new HashMap<>();
+        // หา combobox ไซส์ของหน้าปัจจุบัน จากปุ่มที่กด
+        private javax.swing.JComboBox<String> resolveSizeCombo(java.awt.Component source) {
+            if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct))  return sizeComboBox;
+            if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct2)) return sizeComboBoxMen;
+            if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct3)) return sizeComboBoxWomen;
+            if (javax.swing.SwingUtilities.isDescendingFrom(source, NewShowProduct4)) return sizeComboBoxSD;
+            return null;
+        }
         private static final Path STOCK_CSV = Paths.get("stock.csv"); // path หาไฟล์ stock.csv
         // ดึงข้อมูลผู้ใช้
         private static final Path USERS_CSV = Paths.get("users.csv"); // path หาไฟล์ user.csv
@@ -55,65 +70,67 @@ public class MainFrame extends javax.swing.JFrame {
         return new String[]{ username, password, email, fullname, house, subdistrict, district, province, zipcode, phone, role };
     }
 }
-    // จัดหน้าสินค้าผู้หญิง
-    private void setupWomenArea() {
+    private void setupNewArea() {
+            ProductNew.removeAll();
+            ProductNew.setLayout(new BorderLayout());
+            ProductNew.add(jTextField4, BorderLayout.NORTH);
+        JScrollPane sp = new JScrollPane(NewShowProduct);
+            sp.setBorder(null);
+            sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            sp.getVerticalScrollBar().setUnitIncrement(24);
+            ProductNew.add(sp, BorderLayout.CENTER);
+
+}
+
+        private void setupMenArea() {
+            ProductMen.removeAll();
+            ProductMen.setLayout(new BorderLayout());
+            ProductMen.add(jTextField3, BorderLayout.NORTH);
+        JScrollPane sp = new JScrollPane(NewShowProduct2);
+            sp.setBorder(null);
+            sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            sp.getVerticalScrollBar().setUnitIncrement(24);
+            ProductMen.add(sp, BorderLayout.CENTER);
+}
+
+
+
+        private void setupWomenArea() {
     ProductWomen.removeAll();
     ProductWomen.setLayout(new BorderLayout());
     ProductWomen.add(jTextField5, BorderLayout.NORTH);
-    configureSpacedGrid(womenGrid);
-    ProductWomen.add(makeScroll(womenGrid), BorderLayout.CENTER);
-    ProductWomen.revalidate(); ProductWomen.repaint();
+    JScrollPane sp = new JScrollPane(NewShowProduct3);
+    sp.setBorder(null);
+    sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    sp.getVerticalScrollBar().setUnitIncrement(24);
+    ProductWomen.add(sp, BorderLayout.CENTER);
 }
-    // จัดหน้าสินค้าลดราคา
-    private void setupDealArea() {
+
+        private void setupDealArea() {
     ProductSD.removeAll();
     ProductSD.setLayout(new BorderLayout());
     ProductSD.add(jTextField6, BorderLayout.NORTH);
-    configureSpacedGrid(dealGrid);
-    ProductSD.add(makeScroll(dealGrid), BorderLayout.CENTER);
-    ProductSD.revalidate(); ProductSD.repaint();
-}
-    // จัดหน้าสินค้าใหม่
-    private void setupNewArea() {
-    ProductNew.removeAll();
-    ProductNew.setLayout(new BorderLayout());
-    ProductNew.add(jTextField4, BorderLayout.NORTH);
-    configureSpacedGrid(NewShowProduct);             // ช่องว่างคงที่ 4 คอลัมน์
-    ProductNew.add(makeScroll(NewShowProduct), BorderLayout.CENTER);
-    ProductNew.revalidate(); ProductNew.repaint();
-}
-    // จัดหน้าสินค้าผู้ชาย
-    private void setupMenArea() {
-    ProductMen.removeAll();
-    ProductMen.setLayout(new BorderLayout());
-    ProductMen.add(jTextField3, BorderLayout.NORTH);
-    configureSpacedGrid(NewShowProduct7);
-    ProductMen.add(makeScroll(NewShowProduct7), BorderLayout.CENTER);
-    ProductMen.revalidate(); ProductMen.repaint();
-}
 
-        // เริ่มมาโชว์หน้าสินค้าใหม่
+    JScrollPane sp = new JScrollPane(NewShowProduct4);
+    sp.setBorder(null);
+    sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    sp.getVerticalScrollBar().setUnitIncrement(24);
+
+    ProductSD.add(sp, BorderLayout.CENTER);
+}
+       
+
         private void showNew() {
             catalog.reload();
-            ArrayList<Product> all = new ArrayList<Product>(catalog.getAllProducts());
-            ArrayList<Product> onlyNoDiscount = new ArrayList<Product>();
-        for (int i = 0; i < all.size(); i++) {
-            Product p = all.get(i);
-        if (p.getDiscountPercent() == 0.0) {
-            onlyNoDiscount.add(p);
-        }
-    }
-    int from = Math.max(onlyNoDiscount.size() - 8, 0); //เอาสินค้า 8 อันล่าสุดที่ไม่ได้มีการลดราคามา
-    ArrayList<Product> last5 = new ArrayList<Product>();
-    for (int i = from; i < onlyNoDiscount.size(); i++) {
-        last5.add(onlyNoDiscount.get(i));
-    }
-    ensureGridBag(NewShowProduct);
-    populateGrid(NewShowProduct, last5);
+            ArrayList<Product> onlyNoDiscount = new ArrayList<>(catalog.getAllProducts());
+            Collections.reverse(onlyNoDiscount);
+            ensureGridBag(NewShowProduct);
+            populateGrid(NewShowProduct, onlyNoDiscount);
+
 }
 
         private void showMen() {
-            catalog.reload();
+           catalog.reload();
             ArrayList<Product> men = new ArrayList<Product>();
             List<Product> all = catalog.getAllProducts();
         for (int i = 0; i < all.size(); i++) {
@@ -122,12 +139,12 @@ public class MainFrame extends javax.swing.JFrame {
             men.add(p);
         }
     }
-    ensureGridBag(NewShowProduct7);
-    populateGrid(NewShowProduct7, men);
+    ensureGridBag(NewShowProduct2);
+    populateGrid(NewShowProduct2, men);
 }
 
         private void showWomen() {
-            catalog.reload();
+             catalog.reload();
             ArrayList<Product> women = new ArrayList<Product>();
             List<Product> all = catalog.getAllProducts();
         for (int i = 0; i < all.size(); i++) {
@@ -136,7 +153,8 @@ public class MainFrame extends javax.swing.JFrame {
             women.add(p);
         }
     }
-    populateGrid(womenGrid, women);
+    ensureGridBag(NewShowProduct3);
+    populateGrid(NewShowProduct3, women);
 }
 
         private void showSpecial() {
@@ -149,8 +167,12 @@ public class MainFrame extends javax.swing.JFrame {
             deals.add(p);
         }
     }
-    populateGrid(dealGrid, deals);
+    ensureGridBag(NewShowProduct4);
+    populateGrid(NewShowProduct4, deals);
 }
+
+
+
 private void updateCartSummary() {
     double total = cart.getTotalPrice();                 // จะคิดส่วนลด/โปรโมโค้ดให้เอง
     jLabel58.setText(THB.format(Math.round(total)));  // Grand Total
@@ -163,25 +185,10 @@ private void ensureGridBag(JPanel panel) {
         panel.setLayout(new GridBagLayout());
     }
 }
-/** ใช้คอลัมน์เว้นช่องแบบเดียวกับ New/Men: 0,15,0,15,0,15,0 */
 private void configureSpacedGrid(JPanel grid) {
     GridBagLayout gbl = new GridBagLayout();
-    gbl.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
-    gbl.rowHeights  = new int[] {0, 12, 0};
-    gbl.columnWeights = new double[] {0, 0, 0, 0, 0, 0, 0};  // กันคอลัมน์ยืด
-    gbl.rowWeights    = new double[] {0, 0, 0};              // กันแถวยืด
     grid.setLayout(gbl);
-}
-/** ห่อ grid ด้วย JScrollPane (ไม่ให้มี scrollbar แนวนอน) */
-private JScrollPane makeScroll(JPanel grid) {
-    JScrollPane sp = new JScrollPane(
-            grid,
-            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-    );
-    sp.setBorder(null);
-    sp.getVerticalScrollBar().setUnitIncrement(24);
-    return sp;
+    grid.setBackground(Color.WHITE);
 }
 
 //เพิ่มช่องว่างระหว่างการ์ด
@@ -189,24 +196,36 @@ private void populateGrid(JPanel grid, List<Product> items) {
     grid.removeAll();
 
     GridBagConstraints gc = new GridBagConstraints();
-    gc.insets = new Insets(0, 0, 0, 0);
-    gc.fill = GridBagConstraints.NONE;
-    gc.weightx = 0;
-    gc.weighty = 0;
+    gc.insets = new Insets(15, 15, 15, 15); // เพิ่มช่องว่างรอบการ์ด
+    gc.fill = GridBagConstraints.BOTH;      // ให้การ์ดยืดเต็ม cell
+    gc.weightx = 1.0;                       // ให้ขยายตามแนวนอน
+    gc.weighty = 0;                         // แนวตั้งขยายเฉพาะเท่าที่ต้อง
     gc.anchor = GridBagConstraints.NORTHWEST;
+
     int col = 0, row = 0;
-    final int COLS = 4; // 4 ช่องต่อแถวเหมือนหน้า New/Men
+    final int COLS = 4; // แถวละ 4 ช่อง (จะขยายเต็มได้เมื่อหน้าจอกว้าง)
     for (int i = 0; i < items.size(); i++) {
         Product p = items.get(i);
-        gc.gridx = col * 2;    // ข้ามคอลัมน์เว้นช่อง (0,2,4,6)
-        gc.gridy = row * 2;    // ข้ามแถวเว้นช่อง (0,2,4,...)
+        gc.gridx = col;
+        gc.gridy = row;
         grid.add(createProductCard(p), gc);
+
         col++;
-        if (col == COLS) { col = 0; row++; }
+        if (col == COLS) { 
+            col = 0; 
+            row++; 
+        }
     }
+
+    // ✅ ดันให้เต็มด้านล่าง (ไม่ให้การ์ดลอย)
+    gc.weighty = 1;
+    gc.gridy = row + 1;
+    grid.add(Box.createVerticalGlue(), gc);
+
     grid.revalidate();
     grid.repaint();
 }
+
 
 
 private static final int IMG_H   = 100;
@@ -287,7 +306,30 @@ private static String pickThaiFontFamily() {
     // ถ้าไม่เจออะไรเลย ให้ใช้ฟอนต์ระบบ
     return new java.awt.Font(null, java.awt.Font.PLAIN, 16).getFamily();
 }
-
+//บังคับ font ให้อ่านภาษาไทยได้
+private void forceThai(Component root) {
+    String family = pickThaiFontFamily();
+    applyFontRecursively(root, family);
+    javax.swing.SwingUtilities.updateComponentTreeUI(root);
+}
+private static void applyFontRecursively(java.awt.Component c, String family) {
+    java.awt.Font f = c.getFont();
+    if (f != null) {
+        c.setFont(new java.awt.Font(family, f.getStyle(), f.getSize()));
+    }
+    if (c instanceof javax.swing.JComponent) {
+        javax.swing.border.Border b = ((javax.swing.JComponent) c).getBorder();
+        if (b instanceof javax.swing.border.TitledBorder tb) {
+            java.awt.Font tf = tb.getTitleFont();
+            if (tf != null) tb.setTitleFont(new java.awt.Font(family, tf.getStyle(), tf.getSize()));
+        }
+    }
+    if (c instanceof java.awt.Container cont) {
+        for (java.awt.Component ch : cont.getComponents()) {
+            applyFontRecursively(ch, family);
+        }
+    }
+}
 public static void installThaiUIFont(float sizePts) {
     String family = pickThaiFontFamily();
     java.awt.Font base = new java.awt.Font(family, java.awt.Font.PLAIN, Math.round(sizePts))
@@ -367,11 +409,12 @@ private JPanel createProductCard(final Product p) {
     }
 
    //ปุ่ม Add
-    JButton add = new JButton("Add to Cart");
-    add.setBackground(Color.BLACK);
-    add.setForeground(Color.WHITE);
-    add.setFocusPainted(false);
-    add.setAlignmentX(Component.LEFT_ALIGNMENT);
+JButton add = new JButton("Add to Cart");
+add.setBackground(Color.BLACK);
+add.setForeground(Color.WHITE);
+add.setFocusPainted(false);
+add.setAlignmentX(Component.LEFT_ALIGNMENT);
+
 
     // ให้ปุ่มกว้าง “เต็มการ์ด”
     add.setPreferredSize(new Dimension(CARD_W - 2*P, BTN_H));
@@ -388,11 +431,23 @@ private JPanel createProductCard(final Product p) {
     skuToQtyLabel.put(p.getSku(), qtyLabel);
 
     //เพิ่มสินค้าลงตะกร้า
-    add.addActionListener(new ActionListener() {
+add.addActionListener(new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
         try {
+            // ต้องเลือกไซส์ก่อน
+            javax.swing.JComboBox<String> cb = resolveSizeCombo((Component) e.getSource());
+            if (cb == null || cb.getSelectedIndex() <= 0) {
+                javax.swing.JOptionPane.showMessageDialog(MainFrame.this, "Please choose shoes size");
+                if (cb != null) cb.requestFocus();
+                return;
+            }
+            String chosenSize = String.valueOf(cb.getSelectedItem());
+
+            // เพิ่มลงตะกร้า + จดไซส์
             cart.addItem(p.getSku(), 1);
+            skuToSize.put(p.getSku(), chosenSize);
+
             int q = getQtyInCart(p.getSku());
             JLabel lbl = skuToQtyLabel.get(p.getSku());
             if (lbl != null) {
@@ -409,10 +464,10 @@ private JPanel createProductCard(final Product p) {
             );
         }
     }
-
 });
 
-    box.add(img);
+
+     box.add(img);
     box.add(Box.createVerticalStrut(6));
     box.add(brand);
     box.add(name);
@@ -424,7 +479,8 @@ private JPanel createProductCard(final Product p) {
     box.add(qtyLabel);
     card.add(box, BorderLayout.CENTER);
     return card;
-}
+        }
+
 // อ่านทั้งไฟล์ (ข้าม header แถวแรก)
 private List<String> readAllLinesSmart(Path path) throws IOException {
     byte[] data = Files.readAllBytes(path);
@@ -476,6 +532,100 @@ private List<UserProfile> readAllUsers() {
         return new ArrayList<>();
     }
 }
+// สร้างตัวแปรของที่อยู่ที่ต้องส่ง ตาม user
+private String buildShippingAddress() {
+    String full;
+    String house;
+    String sub;
+    String dist;
+    String prov;
+    String zip;
+
+    if (currentUserProfile != null && currentUserProfile.fullname != null && !currentUserProfile.fullname.trim().isEmpty()) {
+        full = currentUserProfile.fullname;
+    } else {
+        full = nvl(jTextField1.getText());
+    }
+
+    if (currentUserProfile != null && currentUserProfile.house != null && !currentUserProfile.house.trim().isEmpty()) {
+        house = currentUserProfile.house;
+    } else {
+        house = nvl(jTextField7.getText());
+    }
+
+    if (currentUserProfile != null && currentUserProfile.subdistrict != null && !currentUserProfile.subdistrict.trim().isEmpty()) {
+        sub = currentUserProfile.subdistrict;
+    } else {
+        sub = nvl(jTextField8.getText());
+    }
+
+    if (currentUserProfile != null && currentUserProfile.district != null && !currentUserProfile.district.trim().isEmpty()) {
+        dist = currentUserProfile.district;
+    } else {
+        dist = nvl(jTextField9.getText());
+    }
+
+    if (currentUserProfile != null && currentUserProfile.province != null && !currentUserProfile.province.trim().isEmpty()) {
+        prov = currentUserProfile.province;
+    } else {
+        prov = nvl(jTextField12.getText());
+    }
+
+    if (currentUserProfile != null && currentUserProfile.zipcode != null && !currentUserProfile.zipcode.trim().isEmpty()) {
+        zip = currentUserProfile.zipcode;
+    } else {
+        zip = nvl(jTextField11.getText());
+    }
+
+    StringBuilder sb = new StringBuilder();
+    sb.append(full).append(",")
+      .append(house).append(",")
+      .append(sub).append(",")
+      .append(dist).append(",")
+      .append(prov).append(",")
+      .append(zip);
+    return sb.toString();
+}
+
+// เติมค่าลงในหน้า confirm
+private void fillConfirmSummary(List<CartItem> snapshot, Map<String,String> sizeSnap, double grandTotal) {
+    StringBuilder items = new StringBuilder();
+
+    for (int i = 0; i < snapshot.size(); i++) {
+        CartItem it = snapshot.get(i);
+        Product pr = it.getProduct();
+
+        String size = sizeSnap.get(pr.getSku());
+        if (size == null || size.trim().isEmpty()) {
+            size = "-";
+        }
+
+        double sub = pr.getPriceAfterBuiltInDiscount() * it.getQuantity();
+
+        items.append(pr.getBrand()).append(" ").append(pr.getName())
+             .append(" x").append(it.getQuantity())
+             .append(" (Size: ").append(size).append(") – ฿ ")
+             .append(THB.format(Math.round(sub)))
+             .append("<br/>");
+    }
+
+    String totalLine = "<br/><b>Price :</b> ฿ " + THB.format(Math.round(grandTotal));
+
+    jLabel74.setText("Order information");
+    jLabel75.setText("<html>" + items.toString() + totalLine + "</html>");
+
+    String email = "";
+    if (currentUserProfile != null && currentUserProfile.email != null) {
+        email = nvl(currentUserProfile.email);
+    }
+    jLabel76.setText("Email : " + email);
+
+    jLabel77.setText("Shipping Address : " + buildShippingAddress());
+
+    String phoneToShow = nvl(jTextField13.getText());
+    jLabel78.setText("Phone number : " + phoneToShow);
+}
+
 // อ่าน stock.csv แล้วหักจำนวนตามที่ซื้อ; ถ้าจำนวนใหม่ = 0 จะลบแถวนั้นทิ้ง
 private void reduceStockByCartAndClear() {
     // รวมจำนวนต่อ SKU ที่ซื้อ
@@ -546,6 +696,7 @@ private void reduceStockByCartAndClear() {
         lbl.setText("In cart: 0");
         lbl.setVisible(false);
     }
+    skuToSize.clear();
     refreshCartListPanel();
     updateOrderSummary();
 }
@@ -642,6 +793,91 @@ private void saveProfileFromForm() {
     writeAllUsers(all);
 }
 
+
+// ระบบค้นหาสินค้าตามชื่อหรือแบรนด์
+private void applySearch(String keyword) {
+    if (keyword == null) {
+        JOptionPane.showMessageDialog(this, "กรุณากรอกคำที่ต้องการค้นหา");
+        return;
+    }
+
+    // 🔹 ลบช่องว่างทั้งหมดและเปลี่ยนเป็นตัวพิมพ์เล็ก
+    final String searchKeyword = keyword.toLowerCase().trim().replaceAll("\\s+", "");
+    if (searchKeyword.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "กรุณากรอกคำที่ต้องการค้นหา");
+        return;
+    }
+
+    catalog.reload();
+    List<Product> allProducts = catalog.getAllProducts();
+
+    // 🔹 รวม brand + name แล้วลบช่องว่างเพื่อค้นหา flexible เช่น "nikelowstar"
+    List<Product> results = allProducts.stream()
+            .filter(p -> {
+                String brandNameCombo = (p.getBrand() + p.getName())
+                        .toLowerCase()
+                        .replaceAll("\\s+", "");
+                return brandNameCombo.contains(searchKeyword);
+            })
+            .collect(Collectors.toList());
+
+    // ✅ สร้างหน้า SearchResult ใหม่เสมอ
+    JPanel SearchResult = new JPanel(new BorderLayout());
+    SearchResult.setBackground(Color.WHITE);
+
+    JLabel title = new JLabel("ผลลัพธ์การค้นหา: " + keyword, SwingConstants.CENTER);
+    title.setFont(new Font("Tahoma", Font.BOLD, 26));
+    title.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
+    SearchResult.add(title, BorderLayout.NORTH);
+
+    JPanel productPanel = new JPanel();
+    productPanel.setBackground(Color.WHITE);
+    ensureGridBag(productPanel);
+
+    if (results.isEmpty()) {
+        // ไม่พบสินค้า  แสดงข้อความแทน
+        JLabel noResult = new JLabel("ไม่พบสินค้าที่ตรงกับ \"" + keyword + "\"", SwingConstants.CENTER);
+        noResult.setFont(new Font("Tahoma", Font.PLAIN, 22));
+        noResult.setForeground(Color.GRAY);
+        productPanel.setLayout(new BorderLayout());
+        productPanel.add(noResult, BorderLayout.CENTER);
+    } else {
+        // พบสินค้า  แสดงการ์ดสินค้าแบบเดิม
+        populateGrid(productPanel, results);
+    }
+
+    JScrollPane scroll = new JScrollPane(productPanel);
+    scroll.setBorder(null);
+    scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    scroll.getVerticalScrollBar().setUnitIncrement(24);
+    scroll.getViewport().setBackground(Color.WHITE);
+    scroll.setPreferredSize(new Dimension(0, 0));
+    SearchResult.add(scroll, BorderLayout.CENTER);
+
+    // ปุ่มกลับหน้าหลัก
+    JPanel bottom = new JPanel();
+    bottom.setBackground(Color.WHITE);
+    JButton back = new JButton("← กลับหน้าหลัก");
+    back.setFont(new Font("Tahoma", Font.BOLD, 16));
+    back.setFocusPainted(false);
+    back.addActionListener(e -> {
+    motherpanel.removeAll();
+    motherpanel.add(MainNew8);
+    motherpanel.repaint();
+    motherpanel.revalidate();
+    showNew(); // โหลดสินค้าหน้า New ใหม่เพื่อให้ปุ่ม Add to Cart ทำงานได้ทันที
+    });
+
+    bottom.add(back);
+    SearchResult.add(bottom, BorderLayout.SOUTH);
+    motherpanel.removeAll();
+    motherpanel.add(SearchResult);
+    motherpanel.repaint();
+    motherpanel.revalidate();
+}
+
+
+
 private static String nvl(String s) { return s == null ? "" : s.trim(); }
     /**
      * Creates new form MainFrame
@@ -715,11 +951,14 @@ private void removeOneFromCart(String sku) {
         cart.removeOne(sku);
         // อัปเดตป้ายจำนวนบนการ์ดสินค้า (ฝั่งหน้า New/Men/Women/Deal)
         int q = getQtyInCart(sku);
-        javax.swing.JLabel lbl = skuToQtyLabel.get(sku);
+        JLabel lbl = skuToQtyLabel.get(sku);
         if (lbl != null) {
             lbl.setText("In cart: " + q);
             lbl.setVisible(q > 0);
         }
+        if (q <= 0) skuToSize.remove(sku);   // เอาไซส์ออกเมื่อจำนวนเป็น 0
+        refreshCartListPanel();
+
 
         // รีเฟรชฝั่งรายการ + สรุปยอด
         refreshCartListPanel();
@@ -755,9 +994,10 @@ private void refreshCartListPanel() {
     rowPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new Color(230, 230, 230)));
 
     String sku  = it.getProduct().getSku();
-    String name = it.getProduct().getBrand() + "  " + it.getProduct().getName();
-    javax.swing.JLabel left = new javax.swing.JLabel(name);
-    left.setFont(left.getFont().deriveFont(Font.BOLD, 14f));
+    String sizeTxt = skuToSize.get(sku);
+    String name = it.getProduct().getBrand() + "  " + it.getProduct().getName()+ (sizeTxt != null ? "  (Size: " + sizeTxt + ")" : "");
+    JLabel left = new JLabel(name);
+
 
     double sub = it.getProduct().getPriceAfterBuiltInDiscount() * it.getQuantity();
     javax.swing.JLabel rightLabel = new javax.swing.JLabel("x" + it.getQuantity() + "   ฿ " + THB.format(Math.round(sub)));
@@ -850,38 +1090,58 @@ private void setupPurchasePage() {
     Purchase.repaint();
 }
 
-/** ===== CONFIRM: จัดการ์ด Order Completed ให้อยู่กลางจอ ===== */
+/** CONFIRM: จัดการ์ด Order Completed */
 private void setupConfirmPage() {
     Confirm.removeAll();
     Confirm.setLayout(new BorderLayout());
 
-    // หัวข้อซ้ายบนคงเดิม
+    // แถบหัวข้อด้านบนเหมือนเดิม
     JPanel north = new JPanel(new BorderLayout());
     north.setOpaque(false);
     north.add(jLabel60, BorderLayout.WEST);
     north.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 0, 20));
     Confirm.add(north, BorderLayout.NORTH);
 
-    // กลางจอ
-    JPanel centerWrap = new JPanel(new GridBagLayout());
-    centerWrap.setOpaque(false);
+    // เอาขนาดคงที่ออก ให้สูงได้เท่าที่ต้องการ
+    jPanel15.setPreferredSize(null);
+    jPanel15.setAlignmentX(Component.CENTER_ALIGNMENT);
+    jButton14.setAlignmentX(Component.CENTER_ALIGNMENT);
 
     JPanel content = new JPanel();
     content.setOpaque(false);
     content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-
-    jPanel15.setAlignmentX(Component.CENTER_ALIGNMENT); // การ์ดสีเทา
-    jButton14.setAlignmentX(Component.CENTER_ALIGNMENT); // ปุ่มกลับบ้าน
+    content.add(Box.createVerticalStrut(10));
     content.add(jPanel15);
     content.add(Box.createVerticalStrut(20));
     content.add(jButton14);
+    content.add(Box.createVerticalStrut(10));
 
-    centerWrap.add(content, new GridBagConstraints());
-    Confirm.add(centerWrap, BorderLayout.CENTER);
+    // จัดให้อยู่กลางแนวนอน แต่สามารถเลื่อนแนวตั้งได้
+    JPanel centerWrap = new JPanel(new GridBagLayout());
+    centerWrap.setOpaque(false);
+    GridBagConstraints gc = new GridBagConstraints();
+    gc.gridx = 0;
+    gc.gridy = 0;
+    gc.weightx = 1;
+    gc.anchor = GridBagConstraints.NORTH;
+    centerWrap.add(content, gc);
+    gc.gridy = 1;
+    gc.weighty = 1;
+    centerWrap.add(Box.createVerticalGlue(), gc);
+    // เพิ่มให้เลื่อนดูข้อมูลได้
+    JScrollPane sp = new JScrollPane(
+            centerWrap,
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+    );
+    sp.setBorder(null);
+    sp.getVerticalScrollBar().setUnitIncrement(24);
+    Confirm.add(sp, BorderLayout.CENTER);
 
     Confirm.revalidate();
     Confirm.repaint();
 }
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -892,57 +1152,41 @@ private void setupConfirmPage() {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
-        jPanel12 = new javax.swing.JPanel();
         jLabel61 = new javax.swing.JLabel();
         motherpanel = new javax.swing.JPanel();
         MainNew8 = new javax.swing.JPanel();
         ProductNew = new javax.swing.JPanel();
         jTextField4 = new javax.swing.JTextField();
         NewShowProduct = new javax.swing.JPanel();
-        Newshowproduct1 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
         jButton1 = new javax.swing.JButton();
-        Newshowproduct2 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
         jLabel8 = new javax.swing.JLabel();
         jButton2 = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
-        Newshowproduct3 = new javax.swing.JPanel();
         jLabel9 = new javax.swing.JLabel();
         jLabel10 = new javax.swing.JLabel();
         jLabel11 = new javax.swing.JLabel();
         jLabel12 = new javax.swing.JLabel();
         jButton3 = new javax.swing.JButton();
-        Newshowproduct4 = new javax.swing.JPanel();
-        Newshowproduct5 = new javax.swing.JPanel();
-        Newshowproduct6 = new javax.swing.JPanel();
-        Newshowproduct7 = new javax.swing.JPanel();
         jLabel13 = new javax.swing.JLabel();
         jLabel14 = new javax.swing.JLabel();
         jLabel15 = new javax.swing.JLabel();
         jLabel16 = new javax.swing.JLabel();
         jButton4 = new javax.swing.JButton();
-        Newshowproduct8 = new javax.swing.JPanel();
         FilterNew = new javax.swing.JPanel();
         NewB10 = new javax.swing.JButton();
         NewB11 = new javax.swing.JButton();
         jCheckBox41 = new javax.swing.JCheckBox();
         jCheckBox42 = new javax.swing.JCheckBox();
-        jCheckBox43 = new javax.swing.JCheckBox();
         jCheckBox44 = new javax.swing.JCheckBox();
         jCheckBox45 = new javax.swing.JCheckBox();
         NewB12 = new javax.swing.JButton();
-        jCheckBox46 = new javax.swing.JCheckBox();
-        jCheckBox47 = new javax.swing.JCheckBox();
-        jCheckBox48 = new javax.swing.JCheckBox();
-        jCheckBox49 = new javax.swing.JCheckBox();
-        jCheckBox50 = new javax.swing.JCheckBox();
-        jCheckBox51 = new javax.swing.JCheckBox();
-        jCheckBox52 = new javax.swing.JCheckBox();
-        jCheckBox53 = new javax.swing.JCheckBox();
-        jCheckBox54 = new javax.swing.JCheckBox();
-        jCheckBox55 = new javax.swing.JCheckBox();
         NewB13 = new javax.swing.JButton();
         jCheckBox56 = new javax.swing.JCheckBox();
         jCheckBox57 = new javax.swing.JCheckBox();
@@ -951,26 +1195,20 @@ private void setupConfirmPage() {
         jCheckBox60 = new javax.swing.JCheckBox();
         MainMen = new javax.swing.JPanel();
         ProductMen = new javax.swing.JPanel();
-        NewShowProduct7 = new javax.swing.JPanel();
-        Newshowproduct15 = new javax.swing.JPanel();
+        NewShowProduct2 = new javax.swing.JPanel();
+        NewShowProduct3 = new javax.swing.JPanel();
+        NewShowProduct4 = new javax.swing.JPanel();
         jPanel9 = new javax.swing.JPanel();
         jLabel41 = new javax.swing.JLabel();
         jLabel42 = new javax.swing.JLabel();
         jLabel43 = new javax.swing.JLabel();
         jLabel44 = new javax.swing.JLabel();
         jButton11 = new javax.swing.JButton();
-        Newshowproduct16 = new javax.swing.JPanel();
         jLabel45 = new javax.swing.JLabel();
         jLabel46 = new javax.swing.JLabel();
         jLabel47 = new javax.swing.JLabel();
         jButton12 = new javax.swing.JButton();
         jLabel48 = new javax.swing.JLabel();
-        Newshowproduct17 = new javax.swing.JPanel();
-        Newshowproduct18 = new javax.swing.JPanel();
-        Newshowproduct19 = new javax.swing.JPanel();
-        Newshowproduct20 = new javax.swing.JPanel();
-        Newshowproduct21 = new javax.swing.JPanel();
-        Newshowproduct22 = new javax.swing.JPanel();
         jTextField3 = new javax.swing.JTextField();
         FilterMen = new javax.swing.JPanel();
         NewB6 = new javax.swing.JButton();
@@ -981,16 +1219,6 @@ private void setupConfirmPage() {
         jCheckBox24 = new javax.swing.JCheckBox();
         jCheckBox25 = new javax.swing.JCheckBox();
         NewB8 = new javax.swing.JButton();
-        jCheckBox26 = new javax.swing.JCheckBox();
-        jCheckBox27 = new javax.swing.JCheckBox();
-        jCheckBox28 = new javax.swing.JCheckBox();
-        jCheckBox29 = new javax.swing.JCheckBox();
-        jCheckBox30 = new javax.swing.JCheckBox();
-        jCheckBox31 = new javax.swing.JCheckBox();
-        jCheckBox32 = new javax.swing.JCheckBox();
-        jCheckBox33 = new javax.swing.JCheckBox();
-        jCheckBox34 = new javax.swing.JCheckBox();
-        jCheckBox35 = new javax.swing.JCheckBox();
         NewB9 = new javax.swing.JButton();
         jCheckBox36 = new javax.swing.JCheckBox();
         jCheckBox37 = new javax.swing.JCheckBox();
@@ -1009,16 +1237,6 @@ private void setupConfirmPage() {
         jCheckBox64 = new javax.swing.JCheckBox();
         jCheckBox65 = new javax.swing.JCheckBox();
         NewB16 = new javax.swing.JButton();
-        jCheckBox66 = new javax.swing.JCheckBox();
-        jCheckBox67 = new javax.swing.JCheckBox();
-        jCheckBox68 = new javax.swing.JCheckBox();
-        jCheckBox69 = new javax.swing.JCheckBox();
-        jCheckBox70 = new javax.swing.JCheckBox();
-        jCheckBox71 = new javax.swing.JCheckBox();
-        jCheckBox72 = new javax.swing.JCheckBox();
-        jCheckBox73 = new javax.swing.JCheckBox();
-        jCheckBox74 = new javax.swing.JCheckBox();
-        jCheckBox75 = new javax.swing.JCheckBox();
         NewB17 = new javax.swing.JButton();
         jCheckBox76 = new javax.swing.JCheckBox();
         jCheckBox77 = new javax.swing.JCheckBox();
@@ -1037,16 +1255,6 @@ private void setupConfirmPage() {
         jCheckBox84 = new javax.swing.JCheckBox();
         jCheckBox85 = new javax.swing.JCheckBox();
         NewB20 = new javax.swing.JButton();
-        jCheckBox86 = new javax.swing.JCheckBox();
-        jCheckBox87 = new javax.swing.JCheckBox();
-        jCheckBox88 = new javax.swing.JCheckBox();
-        jCheckBox89 = new javax.swing.JCheckBox();
-        jCheckBox90 = new javax.swing.JCheckBox();
-        jCheckBox91 = new javax.swing.JCheckBox();
-        jCheckBox92 = new javax.swing.JCheckBox();
-        jCheckBox93 = new javax.swing.JCheckBox();
-        jCheckBox94 = new javax.swing.JCheckBox();
-        jCheckBox95 = new javax.swing.JCheckBox();
         NewB21 = new javax.swing.JButton();
         jCheckBox96 = new javax.swing.JCheckBox();
         jCheckBox97 = new javax.swing.JCheckBox();
@@ -1071,6 +1279,7 @@ private void setupConfirmPage() {
         Purchase = new javax.swing.JPanel();
         jLabel59 = new javax.swing.JLabel();
         jPanel11 = new javax.swing.JPanel();
+        jPanel12 = new javax.swing.JPanel();
         jTextField12 = new javax.swing.JTextField();
         jTextField11 = new javax.swing.JTextField();
         jTextField9 = new javax.swing.JTextField();
@@ -1102,7 +1311,10 @@ private void setupConfirmPage() {
         newBsearch11 = new javax.swing.JButton();
         NewBlogout = new javax.swing.JButton();
         NewBcart11 = new javax.swing.JButton();
-        
+        sizeComboBox = new javax.swing.JComboBox<>();
+        sizeComboBoxMen = new javax.swing.JComboBox<>();
+        sizeComboBoxWomen = new javax.swing.JComboBox<>();
+        sizeComboBoxSD = new javax.swing.JComboBox<>();
 
         jLabel61.setText("jLabel61");
 
@@ -1117,11 +1329,18 @@ private void setupConfirmPage() {
         motherpanel.setPreferredSize(new java.awt.Dimension(900, 530));
         motherpanel.setLayout(new java.awt.CardLayout());
 
+        //หน้าNew
         MainNew8.setMaximumSize(new java.awt.Dimension(920, 573));
         MainNew8.setPreferredSize(new java.awt.Dimension(900, 530));
 
-        ProductNew.setBackground(new java.awt.Color(255, 255, 255));
+        ProductNew.setBackground(new java.awt.Color(249, 249, 249));
         ProductNew.setPreferredSize(new java.awt.Dimension(708, 490));
+        
+        NewShowProduct.setBackground(new java.awt.Color(198, 252, 255)); //พื้นหลังหน้าNew
+        java.awt.GridBagLayout NewShowProductLayout = new java.awt.GridBagLayout();
+        NewShowProductLayout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
+        NewShowProductLayout.rowHeights = new int[] {0, 12, 0};
+        NewShowProduct.setLayout(NewShowProductLayout);
 
         jTextField4.setEditable(false);
         jTextField4.setBackground(new java.awt.Color(0, 0, 0));
@@ -1137,168 +1356,9 @@ private void setupConfirmPage() {
                 jTextField4ActionPerformed(evt);
             }
         });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 4;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct.add(Newshowproduct3, gridBagConstraints);
 
-        Newshowproduct4.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct4.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct4Layout = new javax.swing.GroupLayout(Newshowproduct4);
-        Newshowproduct4.setLayout(Newshowproduct4Layout);
-        Newshowproduct4Layout.setHorizontalGroup(
-            Newshowproduct4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct4Layout.setVerticalGroup(
-            Newshowproduct4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 195, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct.add(Newshowproduct4, gridBagConstraints);
-
-        Newshowproduct5.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct5.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct5Layout = new javax.swing.GroupLayout(Newshowproduct5);
-        Newshowproduct5.setLayout(Newshowproduct5Layout);
-        Newshowproduct5Layout.setHorizontalGroup(
-            Newshowproduct5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct5Layout.setVerticalGroup(
-            Newshowproduct5Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 195, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct.add(Newshowproduct5, gridBagConstraints);
-
-        Newshowproduct6.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct6.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct6Layout = new javax.swing.GroupLayout(Newshowproduct6);
-        Newshowproduct6.setLayout(Newshowproduct6Layout);
-        Newshowproduct6Layout.setHorizontalGroup(
-            Newshowproduct6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct6Layout.setVerticalGroup(
-            Newshowproduct6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 195, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 4;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct.add(Newshowproduct6, gridBagConstraints);
-
-        Newshowproduct7.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct7.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        jLabel13.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel13.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Home/043519_3.png"))); // NOI18N
-
-        jLabel14.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel14.setText("Puma");
-
-        jLabel15.setFont(new java.awt.Font("Segoe UI", 1, 9)); // NOI18N
-        jLabel15.setText("Speedcat Metallic");
-
-        jLabel16.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
-        jLabel16.setText("฿ 3,800");
-
-        jButton4.setBackground(new java.awt.Color(0, 0, 0));
-        jButton4.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton4.setForeground(new java.awt.Color(255, 255, 255));
-        jButton4.setText("Add to Cart");
-
-        javax.swing.GroupLayout Newshowproduct7Layout = new javax.swing.GroupLayout(Newshowproduct7);
-        Newshowproduct7.setLayout(Newshowproduct7Layout);
-        Newshowproduct7Layout.setHorizontalGroup(
-            Newshowproduct7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct7Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(Newshowproduct7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(Newshowproduct7Layout.createSequentialGroup()
-                        .addGroup(Newshowproduct7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel14)
-                            .addComponent(jLabel15)
-                            .addComponent(jLabel16))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        Newshowproduct7Layout.setVerticalGroup(
-            Newshowproduct7Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct7Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel14)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton4)
-                .addContainerGap(12, Short.MAX_VALUE))
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 6;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct.add(Newshowproduct7, gridBagConstraints);
-
-        Newshowproduct8.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct8.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct8Layout = new javax.swing.GroupLayout(Newshowproduct8);
-        Newshowproduct8.setLayout(Newshowproduct8Layout);
-        Newshowproduct8Layout.setHorizontalGroup(
-            Newshowproduct8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct8Layout.setVerticalGroup(
-            Newshowproduct8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 195, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 6;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct.add(Newshowproduct8, gridBagConstraints);
-
-        javax.swing.GroupLayout ProductNewLayout = new javax.swing.GroupLayout(ProductNew);
-        ProductNew.setLayout(ProductNewLayout);
-        ProductNewLayout.setHorizontalGroup(
-            ProductNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, ProductNewLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(ProductNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(NewShowProduct, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jTextField4, javax.swing.GroupLayout.DEFAULT_SIZE, 696, Short.MAX_VALUE))
-                .addContainerGap())
-        );
-        ProductNewLayout.setVerticalGroup(
-            ProductNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(ProductNewLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jTextField4, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NewShowProduct, javax.swing.GroupLayout.PREFERRED_SIZE, 410, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
 
         FilterNew.setBackground(new java.awt.Color(249, 249, 249));
-
         NewB10.setBackground(new java.awt.Color(249, 249, 249));
         NewB10.setFont(new java.awt.Font("Segoe UI", 1, 16)); // NOI18N
         NewB10.setText("Filter");
@@ -1327,10 +1387,7 @@ private void setupConfirmPage() {
         jCheckBox41.setText("Adidas");
 
         jCheckBox42.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox42.setText("ASUCS");
-
-        jCheckBox43.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox43.setText("New Balance");
+        jCheckBox42.setText("Converse");
 
         jCheckBox44.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox44.setText("Nike");
@@ -1349,41 +1406,12 @@ private void setupConfirmPage() {
                 NewB12ActionPerformed(evt);
             }
         });
-
-        jCheckBox46.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox46.setText("36");
-
-        jCheckBox47.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox47.setText("41");
-
-        jCheckBox48.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox48.setText("37");
-
-        jCheckBox49.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox49.setText("38");
-
-        jCheckBox50.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox50.setText("39");
-
-        jCheckBox51.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox51.setText("40");
-
-        jCheckBox52.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox52.setText("42");
-
-        jCheckBox53.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox53.setText("44");
-
-        jCheckBox54.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox54.setText("43");
-        jCheckBox54.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCheckBox54ActionPerformed(evt);
-            }
-        });
-
-        jCheckBox55.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox55.setText("45");
+        
+        sizeComboBox.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 12)); // NOI18N
+        sizeComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(
+            new String[] { "กรุณาเลือกขนาดรองเท้า","36", "37", "38", "39", "40", "41", "42", "43", "44", "45" }
+        ));
+        sizeComboBox.setSelectedIndex(0);
 
         NewB13.setBackground(new java.awt.Color(249, 249, 249));
         NewB13.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
@@ -1412,6 +1440,7 @@ private void setupConfirmPage() {
         jCheckBox60.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox60.setText("5,000 - 5,999 ฿");
 
+        
         javax.swing.GroupLayout FilterNewLayout = new javax.swing.GroupLayout(FilterNew);
         FilterNew.setLayout(FilterNewLayout);
         FilterNewLayout.setHorizontalGroup(
@@ -1423,24 +1452,11 @@ private void setupConfirmPage() {
                     .addComponent(NewB11)
                     .addComponent(jCheckBox41)
                     .addComponent(jCheckBox42)
-                    .addComponent(jCheckBox43)
                     .addComponent(jCheckBox44)
                     .addComponent(jCheckBox45)
                     .addComponent(NewB12)
-                    .addGroup(FilterNewLayout.createSequentialGroup()
-                        .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox46)
-                            .addComponent(jCheckBox48)
-                            .addComponent(jCheckBox49)
-                            .addComponent(jCheckBox50)
-                            .addComponent(jCheckBox51))
+                    .addComponent(sizeComboBox)
                         .addGap(51, 51, 51)
-                        .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox55)
-                            .addComponent(jCheckBox53)
-                            .addComponent(jCheckBox52)
-                            .addComponent(jCheckBox47)
-                            .addComponent(jCheckBox54)))
                     .addComponent(NewB13)
                     .addComponent(jCheckBox56)
                     .addComponent(jCheckBox57)
@@ -1461,33 +1477,10 @@ private void setupConfirmPage() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox42)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jCheckBox43)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox44)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox45)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NewB12)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox46)
-                    .addComponent(jCheckBox47))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox48)
-                    .addComponent(jCheckBox52))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox49)
-                    .addComponent(jCheckBox54))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox50)
-                    .addComponent(jCheckBox53))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterNewLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox51)
-                    .addComponent(jCheckBox55))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(NewB13)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -1500,7 +1493,12 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox59)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox60)
+                .addComponent(NewB12)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sizeComboBox, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE) // ✅ เพิ่มตรงนี้
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                
         );
 
         javax.swing.GroupLayout MainNew8Layout = new javax.swing.GroupLayout(MainNew8);
@@ -1513,275 +1511,39 @@ private void setupConfirmPage() {
                 .addComponent(ProductNew, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         MainNew8Layout.setVerticalGroup(
-            MainNew8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(MainNew8Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(MainNew8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(FilterNew, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(ProductNew, javax.swing.GroupLayout.DEFAULT_SIZE, 518, Short.MAX_VALUE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        MainNew8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        .addGroup(MainNew8Layout.createSequentialGroup()
+            .addContainerGap()
+            .addGroup(MainNew8Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addComponent(FilterNew, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(ProductNew, javax.swing.GroupLayout.DEFAULT_SIZE, 521, Short.MAX_VALUE)) 
+            .addContainerGap()) 
         );
-
+        //เรียกใช้filter
+        for (Component comp : FilterNew.getComponents()) {
+            if (comp instanceof JCheckBox cb) {
+                cb.addActionListener(e -> applyFilterNew());
+            }
+        }
         motherpanel.add(MainNew8, "card3");
 
+       
+       
+       
+       
+       //ของหน้าMen
         MainMen.setPreferredSize(new java.awt.Dimension(900, 530));
 
-        ProductMen.setBackground(new java.awt.Color(255, 255, 255));
+        ProductMen.setBackground(new java.awt.Color(249, 249, 249));
         ProductMen.setPreferredSize(new java.awt.Dimension(708, 490));
 
-        NewShowProduct7.setBackground(new java.awt.Color(255, 255, 255));
-        java.awt.GridBagLayout NewShowProduct7Layout = new java.awt.GridBagLayout();
-        NewShowProduct7Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
-        NewShowProduct7Layout.rowHeights = new int[] {0, 12, 0};
-        NewShowProduct7.setLayout(NewShowProduct7Layout);
+        NewShowProduct2.setBackground(new java.awt.Color(198, 252, 255)); //พื้นหลังหน้าMen
+        java.awt.GridBagLayout NewShowProduct2Layout = new java.awt.GridBagLayout();
+        NewShowProduct2Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
+        NewShowProduct2Layout.rowHeights = new int[] {0, 12, 0};
+        NewShowProduct2.setLayout(NewShowProduct2Layout);
 
-        Newshowproduct15.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        jPanel9.setBackground(new java.awt.Color(255, 255, 255));
-
-        jLabel41.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel41.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Home/shoe1.png"))); // NOI18N
-
-        jLabel42.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel42.setText("Adidas");
-
-        jLabel43.setFont(new java.awt.Font("Segoe UI", 1, 9)); // NOI18N
-        jLabel43.setText("Super Star II");
-
-        jLabel44.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
-        jLabel44.setText("฿ 4,500");
-
-        jButton11.setBackground(new java.awt.Color(0, 0, 0));
-        jButton11.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton11.setForeground(new java.awt.Color(255, 255, 255));
-        jButton11.setText("Add to Cart");
-
-        javax.swing.GroupLayout jPanel9Layout = new javax.swing.GroupLayout(jPanel9);
-        jPanel9.setLayout(jPanel9Layout);
-        jPanel9Layout.setHorizontalGroup(
-            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel9Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jLabel41, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                    .addComponent(jLabel43, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel9Layout.createSequentialGroup()
-                        .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel42)
-                            .addGroup(jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(jButton11, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jLabel44, javax.swing.GroupLayout.Alignment.LEADING)))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        jPanel9Layout.setVerticalGroup(
-            jPanel9Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel9Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel41, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel42)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel43, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel44, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton11)
-                .addContainerGap(12, Short.MAX_VALUE))
-        );
-
-        javax.swing.GroupLayout Newshowproduct15Layout = new javax.swing.GroupLayout(Newshowproduct15);
-        Newshowproduct15.setLayout(Newshowproduct15Layout);
-        Newshowproduct15Layout.setHorizontalGroup(
-            Newshowproduct15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
-        Newshowproduct15Layout.setVerticalGroup(
-            Newshowproduct15Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct15Layout.createSequentialGroup()
-                .addComponent(jPanel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct7.add(Newshowproduct15, gridBagConstraints);
-
-        Newshowproduct16.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct16.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        jLabel45.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel45.setText("New Balance");
-
-        jLabel46.setFont(new java.awt.Font("Segoe UI", 1, 9)); // NOI18N
-        jLabel46.setText("New Balance 740");
-
-        jLabel47.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
-        jLabel47.setText("฿ 4,300");
-
-        jButton12.setBackground(new java.awt.Color(0, 0, 0));
-        jButton12.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jButton12.setForeground(new java.awt.Color(255, 255, 255));
-        jButton12.setText("Add to Cart");
-
-        jLabel48.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel48.setIcon(new javax.swing.ImageIcon(getClass().getResource("/page/Home/new-balance-mr530-beige - w - 1.png"))); // NOI18N
-        jLabel48.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
-
-        javax.swing.GroupLayout Newshowproduct16Layout = new javax.swing.GroupLayout(Newshowproduct16);
-        Newshowproduct16.setLayout(Newshowproduct16Layout);
-        Newshowproduct16Layout.setHorizontalGroup(
-            Newshowproduct16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct16Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(Newshowproduct16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton12, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(Newshowproduct16Layout.createSequentialGroup()
-                        .addGroup(Newshowproduct16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel48, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel45)
-                            .addComponent(jLabel46)
-                            .addComponent(jLabel47))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        );
-        Newshowproduct16Layout.setVerticalGroup(
-            Newshowproduct16Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(Newshowproduct16Layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel48, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel45)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel46, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel47, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton12)
-                .addContainerGap(12, Short.MAX_VALUE))
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct7.add(Newshowproduct16, gridBagConstraints);
-
-        Newshowproduct17.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct17.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct17Layout = new javax.swing.GroupLayout(Newshowproduct17);
-        Newshowproduct17.setLayout(Newshowproduct17Layout);
-        Newshowproduct17Layout.setHorizontalGroup(
-            Newshowproduct17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 159, Short.MAX_VALUE)
-        );
-        Newshowproduct17Layout.setVerticalGroup(
-            Newshowproduct17Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 195, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 4;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct7.add(Newshowproduct17, gridBagConstraints);
-
-        Newshowproduct18.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct18.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct18Layout = new javax.swing.GroupLayout(Newshowproduct18);
-        Newshowproduct18.setLayout(Newshowproduct18Layout);
-        Newshowproduct18Layout.setHorizontalGroup(
-            Newshowproduct18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct18Layout.setVerticalGroup(
-            Newshowproduct18Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct7.add(Newshowproduct18, gridBagConstraints);
-
-        Newshowproduct19.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct19.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct19Layout = new javax.swing.GroupLayout(Newshowproduct19);
-        Newshowproduct19.setLayout(Newshowproduct19Layout);
-        Newshowproduct19Layout.setHorizontalGroup(
-            Newshowproduct19Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct19Layout.setVerticalGroup(
-            Newshowproduct19Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct7.add(Newshowproduct19, gridBagConstraints);
-
-        Newshowproduct20.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct20.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct20Layout = new javax.swing.GroupLayout(Newshowproduct20);
-        Newshowproduct20.setLayout(Newshowproduct20Layout);
-        Newshowproduct20Layout.setHorizontalGroup(
-            Newshowproduct20Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct20Layout.setVerticalGroup(
-            Newshowproduct20Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 4;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct7.add(Newshowproduct20, gridBagConstraints);
-
-        Newshowproduct21.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct21.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct21Layout = new javax.swing.GroupLayout(Newshowproduct21);
-        Newshowproduct21.setLayout(Newshowproduct21Layout);
-        Newshowproduct21Layout.setHorizontalGroup(
-            Newshowproduct21Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 159, Short.MAX_VALUE)
-        );
-        Newshowproduct21Layout.setVerticalGroup(
-            Newshowproduct21Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 195, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 6;
-        gridBagConstraints.gridy = 0;
-        NewShowProduct7.add(Newshowproduct21, gridBagConstraints);
-
-        Newshowproduct22.setBackground(new java.awt.Color(255, 255, 255));
-        Newshowproduct22.setPreferredSize(new java.awt.Dimension(159, 195));
-
-        javax.swing.GroupLayout Newshowproduct22Layout = new javax.swing.GroupLayout(Newshowproduct22);
-        Newshowproduct22.setLayout(Newshowproduct22Layout);
-        Newshowproduct22Layout.setHorizontalGroup(
-            Newshowproduct22Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-        Newshowproduct22Layout.setVerticalGroup(
-            Newshowproduct22Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
-        );
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 6;
-        gridBagConstraints.gridy = 2;
-        NewShowProduct7.add(Newshowproduct22, gridBagConstraints);
-
-        jTextField3.setEditable(false);
+       jTextField3.setEditable(false);
         jTextField3.setBackground(new java.awt.Color(0, 0, 0));
         jTextField3.setFont(new java.awt.Font("Segoe UI", 3, 62)); // NOI18N
         jTextField3.setForeground(new java.awt.Color(255, 255, 255));
@@ -1796,25 +1558,40 @@ private void setupConfirmPage() {
             }
         });
 
-        javax.swing.GroupLayout ProductMenLayout = new javax.swing.GroupLayout(ProductMen);
-        ProductMen.setLayout(ProductMenLayout);
-        ProductMenLayout.setHorizontalGroup(
-            ProductMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(ProductMenLayout.createSequentialGroup()
+
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(ProductMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(NewShowProduct7, javax.swing.GroupLayout.DEFAULT_SIZE, 696, Short.MAX_VALUE)
-                    .addComponent(jTextField3))
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel2)
+                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, 143, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(jLabel4, javax.swing.GroupLayout.Alignment.LEADING)))
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
-        ProductMenLayout.setVerticalGroup(
-            ProductMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(ProductMenLayout.createSequentialGroup()
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 88, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NewShowProduct7, javax.swing.GroupLayout.PREFERRED_SIZE, 410, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jButton1)
+                .addGap(12, 12, 12))
         );
 
         FilterMen.setBackground(new java.awt.Color(249, 249, 249));
@@ -1847,7 +1624,7 @@ private void setupConfirmPage() {
         jCheckBox21.setText("Adidas");
 
         jCheckBox22.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox22.setText("ASUCS");
+        jCheckBox22.setText("Converse");
 
         jCheckBox23.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox23.setText("New Balance");
@@ -1869,41 +1646,13 @@ private void setupConfirmPage() {
                 NewB8ActionPerformed(evt);
             }
         });
+        
+        sizeComboBoxMen.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 12));
+        sizeComboBoxMen.setModel(new javax.swing.DefaultComboBoxModel<>(
+            new String[] { "กรุณาเลือกขนาดรองเท้า","36", "37", "38", "39", "40", "41", "42", "43", "44", "45" }
+        ));
+        sizeComboBoxMen.setSelectedIndex(0);
 
-        jCheckBox26.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox26.setText("36");
-
-        jCheckBox27.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox27.setText("41");
-
-        jCheckBox28.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox28.setText("37");
-
-        jCheckBox29.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox29.setText("38");
-
-        jCheckBox30.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox30.setText("39");
-
-        jCheckBox31.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox31.setText("40");
-
-        jCheckBox32.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox32.setText("42");
-
-        jCheckBox33.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox33.setText("44");
-
-        jCheckBox34.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox34.setText("43");
-        jCheckBox34.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCheckBox34ActionPerformed(evt);
-            }
-        });
-
-        jCheckBox35.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox35.setText("45");
 
         NewB9.setBackground(new java.awt.Color(249, 249, 249));
         NewB9.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
@@ -1932,6 +1681,7 @@ private void setupConfirmPage() {
         jCheckBox40.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox40.setText("5,000 - 5,999 ฿");
 
+
         javax.swing.GroupLayout FilterMenLayout = new javax.swing.GroupLayout(FilterMen);
         FilterMen.setLayout(FilterMenLayout);
         FilterMenLayout.setHorizontalGroup(
@@ -1947,20 +1697,7 @@ private void setupConfirmPage() {
                     .addComponent(jCheckBox24)
                     .addComponent(jCheckBox25)
                     .addComponent(NewB8)
-                    .addGroup(FilterMenLayout.createSequentialGroup()
-                        .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox26)
-                            .addComponent(jCheckBox28)
-                            .addComponent(jCheckBox29)
-                            .addComponent(jCheckBox30)
-                            .addComponent(jCheckBox31))
-                        .addGap(51, 51, 51)
-                        .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox35)
-                            .addComponent(jCheckBox33)
-                            .addComponent(jCheckBox32)
-                            .addComponent(jCheckBox27)
-                            .addComponent(jCheckBox34)))
+                    .addComponent(sizeComboBoxMen)
                     .addComponent(NewB9)
                     .addComponent(jCheckBox36)
                     .addComponent(jCheckBox37)
@@ -1987,28 +1724,6 @@ private void setupConfirmPage() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox25)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NewB8)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox26)
-                    .addComponent(jCheckBox27))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox28)
-                    .addComponent(jCheckBox32))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox29)
-                    .addComponent(jCheckBox34))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox30)
-                    .addComponent(jCheckBox33))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterMenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox31)
-                    .addComponent(jCheckBox35))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(NewB9)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox36)
@@ -2020,7 +1735,11 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox39)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox40)
+                .addComponent(NewB8)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sizeComboBoxMen, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+            
         );
 
         javax.swing.GroupLayout MainMenLayout = new javax.swing.GroupLayout(MainMen);
@@ -2041,12 +1760,28 @@ private void setupConfirmPage() {
                     .addComponent(ProductMen, javax.swing.GroupLayout.DEFAULT_SIZE, 521, Short.MAX_VALUE))
                 .addContainerGap())
         );
-
+         //เรียกใช้filter
+        for (Component comp : FilterMen.getComponents()) {
+                if (comp instanceof JCheckBox cb)
+                    cb.addActionListener(e -> applyFilterMen());
+                }
         motherpanel.add(MainMen, "card2");
 
+        
+        
+        
+        //หน้าwomen
         MainWomen.setPreferredSize(new java.awt.Dimension(900, 515));
 
-        ProductWomen.setBackground(new java.awt.Color(255, 255, 255));
+        ProductWomen.setBackground(new java.awt.Color(249, 249, 249));
+        ProductWomen.setPreferredSize(new java.awt.Dimension(708, 490));
+
+
+        NewShowProduct3.setBackground(new java.awt.Color(198, 252, 255)); //พิ้นหลังหน้าWomen
+        java.awt.GridBagLayout NewShowProduct3Layout = new java.awt.GridBagLayout();
+        NewShowProduct3Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
+        NewShowProduct3Layout.rowHeights = new int[] {0, 12, 0};
+        NewShowProduct3.setLayout(NewShowProduct3Layout);
 
         jTextField5.setEditable(false);
         jTextField5.setBackground(new java.awt.Color(0, 0, 0));
@@ -2062,6 +1797,7 @@ private void setupConfirmPage() {
                 jTextField5ActionPerformed(evt);
             }
         });
+
 
         javax.swing.GroupLayout ProductWomenLayout = new javax.swing.GroupLayout(ProductWomen);
         ProductWomen.setLayout(ProductWomenLayout);
@@ -2110,7 +1846,7 @@ private void setupConfirmPage() {
         jCheckBox61.setText("Adidas");
 
         jCheckBox62.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox62.setText("ASUCS");
+        jCheckBox62.setText("Converse");
 
         jCheckBox63.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox63.setText("New Balance");
@@ -2133,40 +1869,12 @@ private void setupConfirmPage() {
             }
         });
 
-        jCheckBox66.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox66.setText("36");
+        sizeComboBoxWomen.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 12));
+        sizeComboBoxWomen.setModel(new javax.swing.DefaultComboBoxModel<>(
+            new String[] { "กรุณาเลือกขนาดรองเท้า","36", "37", "38", "39", "40", "41", "42", "43", "44", "45" }
+        ));
+        sizeComboBoxWomen.setSelectedIndex(0);
 
-        jCheckBox67.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox67.setText("41");
-
-        jCheckBox68.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox68.setText("37");
-
-        jCheckBox69.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox69.setText("38");
-
-        jCheckBox70.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox70.setText("39");
-
-        jCheckBox71.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox71.setText("40");
-
-        jCheckBox72.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox72.setText("42");
-
-        jCheckBox73.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox73.setText("44");
-
-        jCheckBox74.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox74.setText("43");
-        jCheckBox74.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCheckBox74ActionPerformed(evt);
-            }
-        });
-
-        jCheckBox75.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox75.setText("45");
 
         NewB17.setBackground(new java.awt.Color(249, 249, 249));
         NewB17.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
@@ -2210,20 +1918,7 @@ private void setupConfirmPage() {
                     .addComponent(jCheckBox64)
                     .addComponent(jCheckBox65)
                     .addComponent(NewB16)
-                    .addGroup(FilterWomenLayout.createSequentialGroup()
-                        .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox66)
-                            .addComponent(jCheckBox68)
-                            .addComponent(jCheckBox69)
-                            .addComponent(jCheckBox70)
-                            .addComponent(jCheckBox71))
-                        .addGap(51, 51, 51)
-                        .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox75)
-                            .addComponent(jCheckBox73)
-                            .addComponent(jCheckBox72)
-                            .addComponent(jCheckBox67)
-                            .addComponent(jCheckBox74)))
+                    .addComponent(sizeComboBoxWomen)
                     .addComponent(NewB17)
                     .addComponent(jCheckBox76)
                     .addComponent(jCheckBox77)
@@ -2250,28 +1945,6 @@ private void setupConfirmPage() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox65)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NewB16)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox66)
-                    .addComponent(jCheckBox67))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox68)
-                    .addComponent(jCheckBox72))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox69)
-                    .addComponent(jCheckBox74))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox70)
-                    .addComponent(jCheckBox73))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterWomenLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox71)
-                    .addComponent(jCheckBox75))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(NewB17)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox76)
@@ -2283,7 +1956,10 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox79)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox80)
-                .addContainerGap(37, Short.MAX_VALUE))
+                .addComponent(NewB16)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sizeComboBoxWomen, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout MainWomenLayout = new javax.swing.GroupLayout(MainWomen);
@@ -2304,12 +1980,27 @@ private void setupConfirmPage() {
                     .addComponent(ProductWomen, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
-
+        //เรียกใช้filter
+        for (Component comp : FilterWomen.getComponents()) {
+            if (comp instanceof JCheckBox cb)
+                cb.addActionListener(e -> applyFilterWomen());
+        }
         motherpanel.add(MainWomen, "card4");
+
+
+
+        //หน้าSpecial deal
 
         MainSD.setPreferredSize(new java.awt.Dimension(900, 515));
 
-        ProductSD.setBackground(new java.awt.Color(255, 255, 255));
+        ProductSD.setBackground(new java.awt.Color(249, 249, 249));
+
+        NewShowProduct4.setBackground(new java.awt.Color(198, 252, 255)); //พิ้นหลังหน้าSpecial
+        java.awt.GridBagLayout NewShowProduct4Layout = new java.awt.GridBagLayout();
+        NewShowProduct4Layout.columnWidths = new int[] {0, 15, 0, 15, 0, 15, 0};
+        NewShowProduct4Layout.rowHeights = new int[] {0, 12, 0};
+        NewShowProduct4.setLayout(NewShowProduct4Layout);
+
 
         jTextField6.setEditable(false);
         jTextField6.setBackground(new java.awt.Color(0, 0, 0));
@@ -2373,7 +2064,7 @@ private void setupConfirmPage() {
         jCheckBox81.setText("Adidas");
 
         jCheckBox82.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox82.setText("ASUCS");
+        jCheckBox82.setText("Converse");
 
         jCheckBox83.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jCheckBox83.setText("New Balance");
@@ -2396,40 +2087,11 @@ private void setupConfirmPage() {
             }
         });
 
-        jCheckBox86.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox86.setText("36");
-
-        jCheckBox87.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox87.setText("41");
-
-        jCheckBox88.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox88.setText("37");
-
-        jCheckBox89.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox89.setText("38");
-
-        jCheckBox90.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox90.setText("39");
-
-        jCheckBox91.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox91.setText("40");
-
-        jCheckBox92.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox92.setText("42");
-
-        jCheckBox93.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox93.setText("44");
-
-        jCheckBox94.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox94.setText("43");
-        jCheckBox94.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jCheckBox94ActionPerformed(evt);
-            }
-        });
-
-        jCheckBox95.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jCheckBox95.setText("45");
+        sizeComboBoxSD.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 12));
+        sizeComboBoxSD.setModel(new javax.swing.DefaultComboBoxModel<>(
+            new String[] { "กรุณาเลือกขนาดรองเท้า","36", "37", "38", "39", "40", "41", "42", "43", "44", "45" }
+        ));
+        sizeComboBoxSD.setSelectedIndex(0);
 
         NewB21.setBackground(new java.awt.Color(249, 249, 249));
         NewB21.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
@@ -2473,20 +2135,7 @@ private void setupConfirmPage() {
                     .addComponent(jCheckBox84)
                     .addComponent(jCheckBox85)
                     .addComponent(NewB20)
-                    .addGroup(FilterSDLayout.createSequentialGroup()
-                        .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox86)
-                            .addComponent(jCheckBox88)
-                            .addComponent(jCheckBox89)
-                            .addComponent(jCheckBox90)
-                            .addComponent(jCheckBox91))
-                        .addGap(51, 51, 51)
-                        .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jCheckBox95)
-                            .addComponent(jCheckBox93)
-                            .addComponent(jCheckBox92)
-                            .addComponent(jCheckBox87)
-                            .addComponent(jCheckBox94)))
+                    .addComponent(sizeComboBoxSD)
                     .addComponent(NewB21)
                     .addComponent(jCheckBox96)
                     .addComponent(jCheckBox97)
@@ -2513,28 +2162,6 @@ private void setupConfirmPage() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox85)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(NewB20)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox86)
-                    .addComponent(jCheckBox87))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox88)
-                    .addComponent(jCheckBox92))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox89)
-                    .addComponent(jCheckBox94))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox90)
-                    .addComponent(jCheckBox93))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(FilterSDLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jCheckBox91)
-                    .addComponent(jCheckBox95))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(NewB21)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox96)
@@ -2546,6 +2173,9 @@ private void setupConfirmPage() {
                 .addComponent(jCheckBox99)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jCheckBox100)
+                .addComponent(NewB20)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(sizeComboBoxSD, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(37, Short.MAX_VALUE))
         );
 
@@ -2567,8 +2197,14 @@ private void setupConfirmPage() {
                     .addComponent(ProductSD, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
-
+        //เรียกใช้filter
+        for (Component comp : FilterSD.getComponents()) {
+            if (comp instanceof JCheckBox cb)
+                cb.addActionListener(e -> applyFilterDeal());
+        }
         motherpanel.add(MainSD, "card4");
+
+
 
         Cart.setBackground(new java.awt.Color(255, 255, 255));
         Cart.setPreferredSize(new java.awt.Dimension(900, 515));
@@ -3093,6 +2729,13 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         });
 
         newBsearch11.setText("🔎");
+        newBsearch11.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                newBsearch11ActionPerformed(evt); 
+            }
+        });
+
+
         NewBcart11.setBackground(new java.awt.Color(204, 204, 204));
         ///NewBcart11.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         ///NewBcart11.setText("Cart");
@@ -3182,6 +2825,57 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    //Filter
+    private void applyFilterNew() {
+    List<Product> filtered = filterManager.filterProducts(FilterNew, "new");
+
+    if (filtered == null) { // หมายถึงไม่ได้ติ๊กอะไรเลย → โหลดใหม่
+        showNew();
+        return;
+    }
+
+    ensureGridBag(NewShowProduct);
+    populateGrid(NewShowProduct, filtered);
+}
+// 🔹 หน้า Men
+private void applyFilterMen() {
+    List<Product> filtered = filterManager.filterProducts(FilterMen, "men");
+
+    if (filtered == null) { // ถ้าไม่ติ๊กอะไร → โหลดหน้าเดิม
+        showMen();
+        return;
+    }
+
+    ensureGridBag(NewShowProduct2);
+    populateGrid(NewShowProduct2, filtered);
+}
+
+// 🔹 หน้า Women
+private void applyFilterWomen() {
+    List<Product> filtered = filterManager.filterProducts(FilterWomen, "women");
+
+    if (filtered == null) {
+        showWomen();
+        return;
+    }
+
+    ensureGridBag(NewShowProduct3);
+    populateGrid(NewShowProduct3, filtered);
+}
+
+// 🔹 หน้า Special Deal
+private void applyFilterDeal() {
+    List<Product> filtered = filterManager.filterProducts(FilterSD, "special");
+
+    if (filtered == null) {
+        showSpecial();
+        return;
+    }
+
+    ensureGridBag(NewShowProduct4);
+    populateGrid(NewShowProduct4, filtered);
+}
+
     private void NewBmen11NewBmenMenB1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_NewBmen11NewBmenMenB1MouseClicked
         // TODO add your handling code here:
     }//GEN-LAST:event_NewBmen11NewBmenMenB1MouseClicked
@@ -3193,6 +2887,12 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         motherpanel.revalidate();
         showMen();
     }//GEN-LAST:event_NewBmen11NewBmenMenB1ActionPerformed
+
+    // ==================== ปุ่มค้นหา ====================
+    private void newBsearch11ActionPerformed(java.awt.event.ActionEvent evt) {                                             
+        String keyword = Newsearch11.getText();
+        applySearch(keyword);
+    }
 
     private void NewBwomen11NewBwomenWomenB1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NewBwomen11NewBwomenWomenB1ActionPerformed
         motherpanel.removeAll();
@@ -3210,8 +2910,9 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
         showSpecial();
     }//GEN-LAST:event_NewBsp11NewBspSpecialB1ActionPerformed
 
-    private void Newsearch11NewsearchSearchF1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Newsearch11NewsearchSearchF1ActionPerformed
-        // TODO add your handling code here:
+    private void Newsearch11NewsearchSearchF1ActionPerformed(java.awt.event.ActionEvent evt) {                                                             
+    String keyword = Newsearch11.getText();
+    applySearch(keyword);
     }//GEN-LAST:event_Newsearch11NewsearchSearchF1ActionPerformed
 
 
@@ -3348,7 +3049,7 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
     motherpanel.add(Purchase);
     motherpanel.repaint();
     motherpanel.revalidate();
-
+    forceThai(Purchase);
     loadProfileToForm();
     }//GEN-LAST:event_jButton13ActionPerformed
 
@@ -3361,13 +3062,18 @@ jTextField2.addFocusListener(new java.awt.event.FocusAdapter() {
 
     // ปุ่ม Confirm
     private void jButton16ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton16ActionPerformed
+        // เก็บค่าสแน็ปช็อตก่อนล้าง
+        List<CartItem> snapshot = new ArrayList<>(cart.getItems());
+        Map<String,String> sizeSnap = new HashMap<>(skuToSize);
+        double grand = cart.getTotalPrice();  // ราคาหลังส่วนลด/โปรโมโค้ดแล้ว
         saveProfileFromForm(); 
-        reduceStockByCartAndClear();
-
+        reduceStockByCartAndClear();  // จะเคลียร์ cart + ไซส์ + อัปเดต stock.csv ลดจำนวนสินค้า
         motherpanel.removeAll();
         motherpanel.add(Confirm);
         motherpanel.repaint();
         motherpanel.revalidate();
+        fillConfirmSummary(snapshot, sizeSnap, grand);
+        forceThai(Confirm);   // ใช้ฟอนต์ไทย
     }//GEN-LAST:event_jButton16ActionPerformed
 
 private static void installThaiFriendlyFont() {
@@ -3453,24 +3159,10 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JButton NewBsp11;
     private javax.swing.JButton NewBwomen11;
     private javax.swing.JPanel NewShowProduct;
-    private javax.swing.JPanel NewShowProduct7;
+    private javax.swing.JPanel NewShowProduct2;
+    private javax.swing.JPanel NewShowProduct3;
+    private javax.swing.JPanel NewShowProduct4;
     private javax.swing.JTextField Newsearch11;
-    private javax.swing.JPanel Newshowproduct1;
-    private javax.swing.JPanel Newshowproduct15;
-    private javax.swing.JPanel Newshowproduct16;
-    private javax.swing.JPanel Newshowproduct17;
-    private javax.swing.JPanel Newshowproduct18;
-    private javax.swing.JPanel Newshowproduct19;
-    private javax.swing.JPanel Newshowproduct2;
-    private javax.swing.JPanel Newshowproduct20;
-    private javax.swing.JPanel Newshowproduct21;
-    private javax.swing.JPanel Newshowproduct22;
-    private javax.swing.JPanel Newshowproduct3;
-    private javax.swing.JPanel Newshowproduct4;
-    private javax.swing.JPanel Newshowproduct5;
-    private javax.swing.JPanel Newshowproduct6;
-    private javax.swing.JPanel Newshowproduct7;
-    private javax.swing.JPanel Newshowproduct8;
     private javax.swing.JPanel ProductMen;
     private javax.swing.JPanel ProductNew;
     private javax.swing.JPanel ProductSD;
@@ -3492,16 +3184,6 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox23;
     private javax.swing.JCheckBox jCheckBox24;
     private javax.swing.JCheckBox jCheckBox25;
-    private javax.swing.JCheckBox jCheckBox26;
-    private javax.swing.JCheckBox jCheckBox27;
-    private javax.swing.JCheckBox jCheckBox28;
-    private javax.swing.JCheckBox jCheckBox29;
-    private javax.swing.JCheckBox jCheckBox30;
-    private javax.swing.JCheckBox jCheckBox31;
-    private javax.swing.JCheckBox jCheckBox32;
-    private javax.swing.JCheckBox jCheckBox33;
-    private javax.swing.JCheckBox jCheckBox34;
-    private javax.swing.JCheckBox jCheckBox35;
     private javax.swing.JCheckBox jCheckBox36;
     private javax.swing.JCheckBox jCheckBox37;
     private javax.swing.JCheckBox jCheckBox38;
@@ -3509,19 +3191,8 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox40;
     private javax.swing.JCheckBox jCheckBox41;
     private javax.swing.JCheckBox jCheckBox42;
-    private javax.swing.JCheckBox jCheckBox43;
     private javax.swing.JCheckBox jCheckBox44;
     private javax.swing.JCheckBox jCheckBox45;
-    private javax.swing.JCheckBox jCheckBox46;
-    private javax.swing.JCheckBox jCheckBox47;
-    private javax.swing.JCheckBox jCheckBox48;
-    private javax.swing.JCheckBox jCheckBox49;
-    private javax.swing.JCheckBox jCheckBox50;
-    private javax.swing.JCheckBox jCheckBox51;
-    private javax.swing.JCheckBox jCheckBox52;
-    private javax.swing.JCheckBox jCheckBox53;
-    private javax.swing.JCheckBox jCheckBox54;
-    private javax.swing.JCheckBox jCheckBox55;
     private javax.swing.JCheckBox jCheckBox56;
     private javax.swing.JCheckBox jCheckBox57;
     private javax.swing.JCheckBox jCheckBox58;
@@ -3532,16 +3203,6 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox63;
     private javax.swing.JCheckBox jCheckBox64;
     private javax.swing.JCheckBox jCheckBox65;
-    private javax.swing.JCheckBox jCheckBox66;
-    private javax.swing.JCheckBox jCheckBox67;
-    private javax.swing.JCheckBox jCheckBox68;
-    private javax.swing.JCheckBox jCheckBox69;
-    private javax.swing.JCheckBox jCheckBox70;
-    private javax.swing.JCheckBox jCheckBox71;
-    private javax.swing.JCheckBox jCheckBox72;
-    private javax.swing.JCheckBox jCheckBox73;
-    private javax.swing.JCheckBox jCheckBox74;
-    private javax.swing.JCheckBox jCheckBox75;
     private javax.swing.JCheckBox jCheckBox76;
     private javax.swing.JCheckBox jCheckBox77;
     private javax.swing.JCheckBox jCheckBox78;
@@ -3552,16 +3213,6 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JCheckBox jCheckBox83;
     private javax.swing.JCheckBox jCheckBox84;
     private javax.swing.JCheckBox jCheckBox85;
-    private javax.swing.JCheckBox jCheckBox86;
-    private javax.swing.JCheckBox jCheckBox87;
-    private javax.swing.JCheckBox jCheckBox88;
-    private javax.swing.JCheckBox jCheckBox89;
-    private javax.swing.JCheckBox jCheckBox90;
-    private javax.swing.JCheckBox jCheckBox91;
-    private javax.swing.JCheckBox jCheckBox92;
-    private javax.swing.JCheckBox jCheckBox93;
-    private javax.swing.JCheckBox jCheckBox94;
-    private javax.swing.JCheckBox jCheckBox95;
     private javax.swing.JCheckBox jCheckBox96;
     private javax.swing.JCheckBox jCheckBox97;
     private javax.swing.JCheckBox jCheckBox98;
@@ -3633,5 +3284,9 @@ private static void installThaiFriendlyFont() {
     private javax.swing.JTextField jTextField9;
     private javax.swing.JPanel motherpanel;
     private javax.swing.JButton newBsearch11;
+    private javax.swing.JComboBox<String> sizeComboBox;
+    private javax.swing.JComboBox<String> sizeComboBoxMen;
+    private javax.swing.JComboBox<String> sizeComboBoxWomen;
+    private javax.swing.JComboBox<String> sizeComboBoxSD;
     // End of variables declaration//GEN-END:variables
 }
