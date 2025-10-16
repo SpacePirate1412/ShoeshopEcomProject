@@ -455,7 +455,20 @@ add.addActionListener(new ActionListener() {
                 return;
             }
             String chosenSize = String.valueOf(cb.getSelectedItem());
+           int inCart = getQtyInCart(p.getSku());   // จำนวนที่มีอยู่ในตะกร้า
+            int stock = p.getQuantity();             // จำนวนใน stock (มาจาก Product)
 
+            // ตรวจว่ามี stock พอไหม
+            if (inCart + 1 > stock) {
+                javax.swing.UIManager.put("OptionPane.messageFont", new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 14));
+                javax.swing.JOptionPane.showMessageDialog(
+                    MainFrame.this,
+                    "สินค้าหมด หรือเกินจำนวนที่มีในสต็อก (" + stock + " ชิ้น)",
+                    "Out of stock",
+                    javax.swing.JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
             // เพิ่มลงตะกร้า + จดไซส์
             cart.addItem(p.getSku(), 1);
             skuToSize.put(p.getSku(), chosenSize);
@@ -638,10 +651,9 @@ private void fillConfirmSummary(List<CartItem> snapshot, Map<String,String> size
     jLabel78.setText("Phone number : " + phoneToShow);
 }
 
-// อ่าน stock.csv แล้วหักจำนวนตามที่ซื้อ; ถ้าจำนวนใหม่ = 0 จะลบแถวนั้นทิ้ง
+// ✅ อ่าน stock.csv แล้วหักจำนวนตามที่ซื้อ; ถ้าจำนวนใหม่ = 0 จะลบแถวนั้นทิ้ง
 private void reduceStockByCartAndClear() {
-    // รวมจำนวนต่อ SKU ที่ซื้อ
-    Map<String,Integer> buyMap = new HashMap<>();
+    Map<String, Integer> buyMap = new HashMap<>();
     for (CartItem it : cart.getItems()) {
         buyMap.merge(it.getProduct().getSku(), it.getQuantity(), Integer::sum);
     }
@@ -649,62 +661,81 @@ private void reduceStockByCartAndClear() {
 
     try {
         if (!Files.exists(STOCK_CSV)) {
-            javax.swing.JOptionPane.showMessageDialog(this, "ไม่พบไฟล์ stock.csv");
+            JOptionPane.showMessageDialog(this, "ไม่พบไฟล์ stock.csv");
             return;
         }
+
         List<String> lines = Files.readAllLines(STOCK_CSV, StandardCharsets.UTF_8);
         if (lines.isEmpty()) return;
 
         String header = lines.get(0);
         String[] cols = header.split(",", -1);
         int idxSku = -1, idxQty = -1;
+
+        // ✅ หา index ของคอลัมน์ (ไม่สนตัวพิมพ์เล็ก/ใหญ่ + ลบ ")
         for (int i = 0; i < cols.length; i++) {
-            String c = cols[i].trim().toLowerCase();
+            String c = cols[i].replace("\"", "").trim().toLowerCase();
             if (c.equals("sku") || c.equals("id")) idxSku = i;
             if (c.equals("quantity") || c.equals("qty") || c.equals("stock")) idxQty = i;
         }
+
         if (idxSku < 0 || idxQty < 0) {
-            javax.swing.JOptionPane.showMessageDialog(this, "stock.csv ต้องมีคอลัมน์ sku และ quantity/qty/stock");
+            JOptionPane.showMessageDialog(this, "❌ stock.csv ต้องมีคอลัมน์ SKU และ Quantity/Qty/Stock");
             return;
         }
 
         List<String> out = new ArrayList<>();
-        out.add(header);
+        out.add(header); // ✅ header เดิมไม่ต้องแตะ
 
+        // ✅ วนลูปแต่ละแถวเพื่อลดจำนวน
         for (int i = 1; i < lines.size(); i++) {
             String line = lines.get(i).trim();
             if (line.isEmpty()) continue;
 
             String[] c = line.split(",", -1);
-            if (c.length < cols.length) { out.add(line); continue; }
+            if (c.length < cols.length) {
+                out.add(line);
+                continue;
+            }
 
-            String sku = c[idxSku].trim();
+            // ✅ ลบ " ออกทุกช่อง
+            for (int k = 0; k < c.length; k++) {
+                c[k] = c[k].replace("\"", "").trim();
+            }
+
+            String sku = c[idxSku];
             Integer bought = buyMap.get(sku);
-            if (bought == null) { out.add(line); continue; }
+            if (bought == null) {
+                out.add(formatCsvLine(c));
+                continue;
+            }
 
             int oldQty = 0;
-            try { oldQty = Integer.parseInt(c[idxQty].trim()); } catch (Exception ignore) {}
+            try {
+                oldQty = Integer.parseInt(c[idxQty].trim());
+            } catch (Exception ignore) {}
+
             int newQty = Math.max(0, oldQty - bought);
 
-            if (newQty == 0) {
-                // ไม่เขียนแถวนี้ออกไป = ลบสินค้าออกจากไฟล์
-            } else {
+            // ถ้าเหลือ 0 ไม่เขียนแถวนั้นออกไป = ลบสินค้า
+            if (newQty > 0) {
                 c[idxQty] = String.valueOf(newQty);
-                out.add(String.join(",", c));
+                out.add(formatCsvLine(c));
             }
         }
 
+        // เขียนกลับไฟล์ (พร้อมครอบ ")
         Files.write(STOCK_CSV, out, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
     } catch (IOException e) {
         e.printStackTrace();
-        javax.swing.JOptionPane.showMessageDialog(this, "อัปเดตสต็อกไม่สำเร็จ: " + e.getMessage());
+        JOptionPane.showMessageDialog(this, "อัปเดตสต็อกไม่สำเร็จ: " + e.getMessage());
     }
 
-    // ล้างตะกร้า + อัปเดต UI
-    cart.clearCart();  // ← ใช้เมธอดของคุณ
-    for (javax.swing.JLabel lbl : skuToQtyLabel.values()) {
+    //  ล้างตะกร้า + อัปเดต UI
+    cart.clearCart();
+    for (JLabel lbl : skuToQtyLabel.values()) {
         lbl.setText("In cart: 0");
         lbl.setVisible(false);
     }
@@ -713,6 +744,17 @@ private void reduceStockByCartAndClear() {
     updateOrderSummary();
     updatePurchaseButton();
 }
+
+/*ช่วยฟังก์ชัน — ใส่เครื่องหมาย " ครอบทุกค่าในบรรทัด CSV */
+private String formatCsvLine(String[] fields) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < fields.length; i++) {
+        if (i > 0) sb.append(",");
+        sb.append("\"").append(fields[i].replace("\"", "")).append("\"");
+    }
+    return sb.toString();
+}
+
 
 private void writeAllUsers(List<UserProfile> users) {
     try {
